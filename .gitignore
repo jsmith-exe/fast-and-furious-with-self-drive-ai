@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+
+# Jupyter checkpoints
+*.ipynb_checkpoints
+
+# Large training artefacts
+models/
+*.pth
+*.hdf5
+data/
+
+# Logs
+*.log
