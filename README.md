@@ -1,6 +1,6 @@
 # Fast & Furious with Self Drive AI
 
-**Author:** [Your Name]  
+**Author:** Jamie Smith  
 **Date:** 2025-06-26
 
 ---
@@ -11,22 +11,9 @@ Fast & Furious with Self Drive AI is an autonomous driving system that combines 
 
 ---
 
-## 📂 Table of Contents
-
-- [Installation](#installation)  
-- [Usage](#usage)  
-- [Project Structure](#project-structure)  
-- [Features](#features)  
-- [Configuration](#configuration)  
-- [Contributing](#contributing)  
-- [License](#license)  
-- [Contact](#contact)  
-
----
-
 ## 🛠️ Installation
 
 1. Clone the repo:  
    ```bash
-   git clone https://github.com/your-username/fast-furious-self-drive-ai.git
+   git clone https://gitlab.eeecs.qub.ac.uk/40401789/fast-and-furious-with-self-drive-ai.git
    cd fast-furious-self-drive-ai
