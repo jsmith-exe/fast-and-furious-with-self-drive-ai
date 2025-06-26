@@ -6,7 +6,6 @@ __pycache__/
 
 # Large training artefacts
 models/
-*.pth
 *.hdf5
 data/
 
