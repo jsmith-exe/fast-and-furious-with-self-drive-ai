@@ -1,0 +1,18 @@
+ifconfig #Get the IP address of the virtual machine
+hostname #Get the hostname of the virtual machine
+
+Edit IP address of Jetson and Virtual Machine:
+
+	Jetson:
+		sudo nano /etc/hosts
+
+	Virtual Machine:
+		sudo nano /etc/hosts
+
+Verify connection is made:
+	
+	Jetson:
+		rosrun rospy_tutorials listener
+
+	Virtual Machine:
+		rosrun rospy_tutorials talker
