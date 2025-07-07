@@ -16,7 +16,7 @@ dt = 0.05        # Time step (s)
 v = 2.0         # Forward speed (units per step)
 
 # Steering limits
-max_steer = np.pi/4  # ±45°
+max_steer = np.pi/4  # +-45 degrees
 
 # MPC Weights
 w_y = 10        # Cross-track error weight
@@ -97,9 +97,9 @@ for step in range(200):
         # Compute steering via MPC
     steer, latency = solve_mpc(cte)
     # Print CTE, steering amount, and latency
-    print(f"CTE={cte:.2f}, Steer={np.rad2deg(steer):.1f}°, Latency={latency:.1f}ms")
-    # Print CTE and steering amount
-    print(f"CTE={cte:.2f}, Steer={np.rad2deg(steer):.1f}°")
+    print "CTE=%.2f, Steer=%.1f degrees, Latency=%.1fms" % (cte, steer, latency)
+    # Print CTE and steering amount only
+    print "CTE=%.2f, Steer=%.1f degrees" % (cte, steer)
 
     # Apply steering and move forward
     car.setheading(np.rad2deg(steer))
