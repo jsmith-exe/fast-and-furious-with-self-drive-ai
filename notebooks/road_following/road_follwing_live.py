@@ -1,47 +1,69 @@
+import cv2
 import torch
+from torchvision.models import resnet18
 from torch2trt import TRTModule
-import numpy as np
-from collections import deque
+from utils import preprocess
 from jetracer.nvidia_racecar import NvidiaRacecar
 from jetcam.csi_camera import CSICamera
-import cv2
-import ipywidgets
-import threading
+import time
 
-
+# Load the TensorRT-optimized road following model
+print("Loading TensorRT model…")
 model_trt = TRTModule()
 model_trt.load_state_dict(torch.load('trained_models/updated_model_trt.pth'))
+model_trt.eval()
+print("✅ Model loaded.")
 
-prev_x = deque(maxlen=5)
-
+# Create the racecar class
+print("Initializing racecar…")
 car = NvidiaRacecar()
+car.steering_gain = -1.0
+car.throttle = 0.0
+print("✅ Racecar ready (steering_gain={}, throttle={}).".format(car.steering_gain, car.throttle))
 
+# Create the camera class
+print("Starting camera…")
 camera = CSICamera(width=224, height=224, capture_fps=65)
+print("✅ Camera streaming at {}×{} @ {}fps.".format(224, 224, 65))
 
-state_widget = ipywidgets.ToggleButtons(options=['On', 'Off'], description='Camera', value='On')
-prediction_widget = ipywidgets.Image(format='jpeg', width=camera.width, height=camera.height)
+STEERING_GAIN = 2.0
+STEERING_BIAS = 0.00
 
-live_execution_widget = ipywidgets.VBox([
-    prediction_widget,
-    state_widget
-])
+# For limiting print output frequency
+last_print_time = time.time()
+frame_count = 0
 
-def road_confidence(cv_image):
-    """Calculate confidence based on road color detection"""
-    colour_img = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
-    lower_green = np.array([40, 60, 60])
-    upper_green = np.array([80, 255, 255])
-    mask = cv2.inRange(colour_img, lower_green, upper_green)
-    kernel = np.ones((3, 3), np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    height, width = mask.shape
-    region = mask[int(height * 0.6):, int(width * 0.3):int(width * 0.7)]
-    green_pixels = cv2.countNonZero(region)
-    area = region.shape[0] * region.shape[1]
-    return green_pixels / area if area > 0 else 0.0
+kp = 2
+kd = 0.5
+last_x = 0
 
-def ml_confidence():
-    """Calculate confidence based on steering stability"""
-    if len(prev_x) < 2:  # Need at least 2 values for std
-        return 1.0
-    return 1.0 - np.var(list(prev_x)[-5:])
+print("Entering control loop…")
+# Start prediction-control loop
+while True:
+    frame_count += 1
+    print("Frame #{}: Capturing…".format(frame_count), end=' ')
+    image = camera.read()  # Capture frame from camera
+    print("Done.")
+
+    print("Frame #{}: Preprocessing…".format(frame_count), end=' ')
+    tensor = preprocess(image).half()
+    print("Done.")
+
+    print("Frame #{}: Running inference…".format(frame_count), end=' ')
+    with torch.no_grad():
+        output = model_trt(tensor).detach().cpu().numpy().flatten()
+    x = float(output[0])  # Predicted normalized x coordinate
+    print("Done. x_norm={:.3f}".format(x))
+
+    # Convert prediction to actual steering command
+    steering_cmd = x * STEERING_GAIN + STEERING_BIAS
+    steering_pd =  (x * kp + (x - last_x) * kd)
+    car.steering = steering_pd
+    print("Frame #{}: Applied steering {:.3f}".format(frame_count, steering_cmd))
+
+    # Print output every 2 seconds for debugging
+    current_time = time.time()
+    if current_time - last_print_time >= 2.0:
+        print("-- Status @ {:.1f}s -- Apex x: {:.3f}, Steering: {:.3f}".format(
+            current_time, x, steering_cmd))
+        last_print_time = current_time

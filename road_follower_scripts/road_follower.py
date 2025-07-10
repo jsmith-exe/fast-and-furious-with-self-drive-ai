@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import time
 import numpy as np
 import torch
@@ -11,18 +13,20 @@ from jetcam.csi_camera import CSICamera
 from controllers.PID import PID
 from controllers.MPC import MPC
 
+USE_PID: bool = 1
+
 # === Constants ===
 MODEL_PATH      = 'trained_models/updated_model_trt.pth'
 CAM_W, CAM_H    = 224, 224
 CAM_FPS         = 65
-THROTTLE_GAIN   = 0.7
+THROTTLE_GAIN   = 0.8
 PRINT_INTERVAL  = 2.0
 
 # === PID Parameters ===
-PID_KP          = 0.85
+PID_KP          = 1.0 # was 0.85
 PID_KI          = 0.1
 PID_KD          = 0.2
-PID_INTEGRAL_RESET = 0.00
+PID_INTEGRAL_RESET = 0.01
 PID_DELAY       = 0.0
 
 # === MPC Parameters ===
@@ -38,7 +42,6 @@ class RoadFollower:
         self,
         model_path: str,
         controller,
-        throttle_gain: float,
         cam_w: int,
         cam_h: int,
         cam_fps: int,
@@ -55,7 +58,7 @@ class RoadFollower:
         # Car setup
         self.car = NvidiaRacecar()
         self.car.steering_gain = -1.0    # no additional gain here
-        self.car.throttle     = throttle_gain
+        self.car.throttle     = 0
 
         # Camera setup
         self.camera = CSICamera(width=cam_w, height=cam_h, capture_fps=cam_fps)
@@ -77,7 +80,9 @@ class RoadFollower:
 
                 # 3) Compute steering via selected controller
                 steer = self.ctrl.compute_steering(x_norm)
+                steer = np.clip(steer, -1, 1)
                 self.car.steering = steer
+                self.car.throttle = THROTTLE_GAIN
                 # Set car speed
                 '''k = 5
                 self.car.throttle = 0.65 + 1 * np.exp(-abs(steer) * k)'''
@@ -114,18 +119,22 @@ def main():
         dt=DT,
         max_steer=MAX_STEER,
         w_y=W_Y,
+        w_psi=0,
         w_delta=W_DELTA,
-        steer_gain=STEER_GAIN_MPC
+        steer_gain=STEER_GAIN_MPC,
+        wheelbase = 0.16,
+        velocity=0.7
     )
 
     # Swap between PID and MPC here:
-    controller = pid_ctrl
-    #controller = mpc_ctrl
+    if USE_PID:
+        controller = pid_ctrl
+    else:
+        controller = mpc_ctrl
 
     follower = RoadFollower(
         model_path=MODEL_PATH,
         controller=controller,
-        throttle_gain=THROTTLE_GAIN,
         cam_w=CAM_W, cam_h=CAM_H, cam_fps=CAM_FPS
     )
     follower.run()
