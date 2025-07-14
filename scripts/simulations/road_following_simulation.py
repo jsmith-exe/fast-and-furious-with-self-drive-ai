@@ -4,8 +4,8 @@ from line_follower_sim import LineFollowerSim
 import numpy as np
 
 # === Reference path === -------------------------------------------------------
-STARTING_OFFSET = -5
-COURSE_LENGTH: int = 1400
+starting_offset = -5
+course_length: int = 1200
 course_amp  = 0.5
 course_freq = 0.7
 
@@ -15,7 +15,7 @@ USE_PID: bool = False   # flip too False to try the MPC
 # === MPC parameters === ---------------------------------------
 N  = 40          # prediction horizon
 dt = 0.05        # [s] integration step
-v  = 2         # [m/s] constant forward speed
+v  = 3         # [m/s] constant forward speed
 max_steer = np.deg2rad(40)  # [rad] hard steering limit
 max_cte = None # max cte
 
@@ -48,11 +48,13 @@ def get_controller() -> PID | MPC:
               u_bounds=(-max_steer, max_steer))
 
 def run_sim(controller: PID | MPC) -> None:
-    sim = LineFollowerSim(controller=controller,
-                 car_velocity= 1.0,
-                 car_starting_offset = 0,
-                 course_amplitude = 0.5,
-                 course_freq = 0.7)
+    sim = LineFollowerSim(
+                 controller=controller,
+                 course_length = course_length,
+                 car_velocity= v,
+                 car_starting_offset = starting_offset,
+                 course_amplitude = course_amp,
+                 course_freq = course_freq)
     sim.run()
 
 def main() -> None:
