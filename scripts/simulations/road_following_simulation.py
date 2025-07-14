@@ -1,6 +1,6 @@
 from controllers.PID import PID
 from controllers.MPC import MPC
-from line_follower_sim import LineFollowerSim
+from sim_class import LineFollowerSim
 import numpy as np
 
 # === Reference path === -------------------------------------------------------
