@@ -1,122 +1,66 @@
-"""
-line_follower_mpc_simulation.py
-Run with:  python line_follower_mpc_simulation.py
-"""
-import os, sys, time, turtle, numpy as np
-from typing import Tuple, Union
-
-# --- Make sure Tcl/Tk is found (needed for turtle on some installs) ---
-base_prefix = getattr(sys, 'base_prefix', sys.prefix)
-os.environ['TCL_LIBRARY'] = os.path.join(base_prefix, 'tcl', 'tcl8.6')
-os.environ['TK_LIBRARY']  = os.path.join(base_prefix, 'tcl', 'tk8.6')
-
-from controllers.MPC import MPC          # << our new reusable controller
-from controllers.PID import PID          # << legacy option (if you want to compare)
+from controllers.PID import PID
+from controllers.MPC import MPC
+from line_follower_sim import LineFollowerSim
+import numpy as np
 
 # === Reference path === -------------------------------------------------------
 STARTING_OFFSET = -5
 COURSE_LENGTH: int = 1400
 course_amp  = 0.5
 course_freq = 0.7
-def course_function(x):
-    "Desired y position for a given x (simple sine wave)."
-    return course_amp * np.sin(course_freq * x)
 
 # === Choose your controller here =============================================
-USE_PID: bool = 0   # flip to False to try the MPC
+USE_PID: bool = False   # flip too False to try the MPC
 
 # === MPC parameters === ---------------------------------------
 N  = 40          # prediction horizon
 dt = 0.05        # [s] integration step
-v  = 0.8         # [m/s] constant forward speed
+v  = 2         # [m/s] constant forward speed
 max_steer = np.deg2rad(40)  # [rad] hard steering limit
-max_cte = None # max cte from the camera reading
+max_cte = None # max cte
 
 # Cost weights
 w_y     = 5.0   # weight on lateral error (y)
 w_delta = 0.5    # weight on steering usage (delta)
 
 # === PID parameters === ---------------------------------------
-KP = 10.0
-KI = 1.0
-KD = 0.15
-INTEGRAL_RESET = 0.0
-DELAY = 0.0
+KP = 2
+KI = 0.1
+KD = 0.2
+integral_reset = None
 
-# Minimal lateral-integrator model:  ẏ = δ
-dyn = lambda y, d: d
-mpc = MPC(f=dyn,
-          n_states=1,
-          n_controls=1,
-          N=N,
-          dt=dt,
-          Q=np.array([[w_y]]),
-          R=np.array([[w_delta]]),
-          #x_bounds=(-max_cte, max_cte),
-          u_bounds=(-max_steer, max_steer))
+def system_dynamics():
+    # Minimal lateral-integrator model:  ẏ = δ
+    return lambda y, d: d
 
-pid = PID(Kp=KP, Ki=KI, Kd=KD, integral_reset=INTEGRAL_RESET, delay=DELAY)  # tweak to taste
+def get_controller() -> PID | MPC:
+    if USE_PID:
+        return PID(Kp=KP, Ki=KI, Kd=KD, integral_reset=integral_reset, max_value=max_steer)
+    else:
+        return MPC(f=system_dynamics(),
+              n_states=1,
+              n_controls=1,
+              N=N,
+              dt=dt,
+              Q=np.array([[w_y]]),
+              R=np.array([[w_delta]]),
+              #x_bounds=(-max_cte, max_cte),
+              u_bounds=(-max_steer, max_steer))
 
-controller = pid if USE_PID else mpc
+def run_sim(controller: PID | MPC) -> None:
+    sim = LineFollowerSim(controller=controller,
+                 car_velocity= 1.0,
+                 car_starting_offset = 0,
+                 course_amplitude = 0.5,
+                 course_freq = 0.7)
+    sim.run()
 
-# Helper so the main loop looks identical for either controller
-def get_command(ctrl: Union[PID, MPC], cte: float) -> Tuple[float, float]:
-    """
-        Compute a steering command from either a PID or MPC controller.
+def main() -> None:
+    ctrl = get_controller()
+    run_sim(controller=ctrl)
 
-        Parameters
-        ----------
-        ctrl : PID | MPC
-            An instance of your PID or MPC controller class.
-        cte : float
-            Cross-track error (metres).
-
-        Returns
-        -------
-        Tuple[float, float]
-            steer   – steering angle in **radians**
-            latency – solver/runtime latency in **milliseconds**
-                      (0 ms when using a PID).
-        """
-    if isinstance(ctrl, PID):
-        steer = ctrl.compute_steering(-cte)   # scalar in, scalar out
-        latency = 0.0
-    else:  # MPC
-        steer, latency = ctrl.compute_steering([cte])  # list/array state
-    return steer, latency
-
-# === Turtle visualisation (unchanged) ========================================
-screen = turtle.Screen();  screen.setup(COURSE_LENGTH, 600);  screen.title('Line follower')
-
-# Draw the reference path once
-path = turtle.Turtle(visible=False);  path.penup()
-path.goto(-COURSE_LENGTH/2, course_function(-COURSE_LENGTH/200)*100);  path.pendown()
-for px in range(int(-COURSE_LENGTH/2), int(((COURSE_LENGTH/2) + 1))):
-    xm = px / 100.0
-    path.goto(px, course_function(xm)*100)
-
-car = turtle.Turtle();  car.shape('arrow');  car.color('red');  car.penup()
-car.goto(-COURSE_LENGTH/2, course_function(-COURSE_LENGTH/200)*100 + STARTING_OFFSET);  car.setheading(0);  car.pendown()
-
-# === Main loop ===============================================================
-x = -COURSE_LENGTH/200                    # starting x-position (m)
-for step in range(int(COURSE_LENGTH/3.5)):
-    y_real = car.ycor()/100.0               # turtle y (m)
-    cte    = y_real - course_function(x)       # cross-track error
-
-    # --- get steering command from the chosen controller ------------------
-    steer, latency = get_command(controller, cte)
-
-    steer = np.clip(steer, -max_steer, max_steer)
-
-    # Log & visualise
-    print(f"step {step:3d} | CTE={cte:+.3f} m | steer={np.rad2deg(steer):+.1f}°"
-          f" | solver latency={latency:.1f} ms")
+if __name__ == '__main__':
+    main()
 
 
-    car.setheading(np.rad2deg(steer))
-    car.forward(v * 100 * dt)   # 100 px ≈ 1 m
-    x += v * dt
-    #time.sleep(dt)
 
-turtle.done()
