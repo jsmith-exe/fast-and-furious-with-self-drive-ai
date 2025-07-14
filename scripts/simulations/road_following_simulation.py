@@ -14,6 +14,8 @@ from controllers.MPC import MPC          # << our new reusable controller
 from controllers.PID import PID          # << legacy option (if you want to compare)
 
 # === Reference path === -------------------------------------------------------
+STARTING_OFFSET = -5
+COURSE_LENGTH: int = 1400
 course_amp  = 0.5
 course_freq = 0.7
 def course_function(x):
@@ -27,7 +29,8 @@ USE_PID: bool = 0   # flip to False to try the MPC
 N  = 40          # prediction horizon
 dt = 0.05        # [s] integration step
 v  = 0.8         # [m/s] constant forward speed
-max_steer = np.pi/4  # [rad] hard steering limit
+max_steer = np.deg2rad(40)  # [rad] hard steering limit
+max_cte = None # max cte from the camera reading
 
 # Cost weights
 w_y     = 5.0   # weight on lateral error (y)
@@ -49,6 +52,7 @@ mpc = MPC(f=dyn,
           dt=dt,
           Q=np.array([[w_y]]),
           R=np.array([[w_delta]]),
+          #x_bounds=(-max_cte, max_cte),
           u_bounds=(-max_steer, max_steer))
 
 pid = PID(Kp=KP, Ki=KI, Kd=KD, integral_reset=INTEGRAL_RESET, delay=DELAY)  # tweak to taste
@@ -82,22 +86,22 @@ def get_command(ctrl: Union[PID, MPC], cte: float) -> Tuple[float, float]:
     return steer, latency
 
 # === Turtle visualisation (unchanged) ========================================
-screen = turtle.Screen();  screen.setup(800, 600);  screen.title('Line follower')
+screen = turtle.Screen();  screen.setup(COURSE_LENGTH, 600);  screen.title('Line follower')
 
 # Draw the reference path once
 path = turtle.Turtle(visible=False);  path.penup()
-path.goto(-400, course_function(-4.0)*100);  path.pendown()
-for px in range(-400, 401):
+path.goto(-COURSE_LENGTH/2, course_function(-COURSE_LENGTH/200)*100);  path.pendown()
+for px in range(int(-COURSE_LENGTH/2), int(((COURSE_LENGTH/2) + 1))):
     xm = px / 100.0
     path.goto(px, course_function(xm)*100)
 
 car = turtle.Turtle();  car.shape('arrow');  car.color('red');  car.penup()
-car.goto(-400, course_function(-4.0)*100);  car.setheading(0);  car.pendown()
+car.goto(-COURSE_LENGTH/2, course_function(-COURSE_LENGTH/200)*100 + STARTING_OFFSET);  car.setheading(0);  car.pendown()
 
 # === Main loop ===============================================================
-x = -4.0                    # starting x-position (m)
-for step in range(200):
-    y_real = car.ycor()/100.0                  # turtle y (m)
+x = -COURSE_LENGTH/200                    # starting x-position (m)
+for step in range(int(COURSE_LENGTH/3.5)):
+    y_real = car.ycor()/100.0               # turtle y (m)
     cte    = y_real - course_function(x)       # cross-track error
 
     # --- get steering command from the chosen controller ------------------
