@@ -1,0 +1,19 @@
+Brief Report
+
+Project Name: 
+
+Supervisor: Yun Wu
+
+Student: Jamie Smith
+
+Date: 11/07/2025
+
+Plan: 11/07/2025:
+1.	Configure parameters for real life MPC
+2.	Improve simulation by including simulated camera values as MPC input
+Brief Report (any progress, thoughts, and development achievements): 
+
+1.	Achieved 2.56x Faster Line Following – Line following at 2.56x speeds using a tuned PID controller.
+2.	Video Recording – Recorded and edited a progress video to highlight the speed increase achieved.
+3.	MPC Line Following Simulation – Developed line following using a model predictive controller within a Python simulation.
+4.	File Efficiency – All road following files, with the exception of one model training file, have now been converted to Python instead of Jupyter notebooks. This has led to faster load times.
