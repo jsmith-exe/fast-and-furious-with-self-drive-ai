@@ -2,6 +2,7 @@ import time
 from abc import ABC, abstractmethod
 import casadi as ca
 import numpy as np
+from typing import Tuple
 
 class ControlStrategy(ABC):
     @abstractmethod
@@ -112,11 +113,11 @@ class MPC(ControlStrategy):
         # solution storage for warm start
         self._prev_sol = None
 
-    def compute_steering(self, state):
+    def compute_steering(self, error: float) -> Tuple[float, float]:
         '''
         Solve MPC and return first control action and solve latency (ms).
         '''
-        self.opti.set_value(self.x0, np.asarray(state).flatten())
+        self.opti.set_value(self.x0, np.asarray(error).flatten())
 
         # warm start
         if self._prev_sol is not None:

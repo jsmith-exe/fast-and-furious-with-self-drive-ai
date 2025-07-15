@@ -15,13 +15,13 @@ class LineFollowerSim:
                  max_steer_degrees: float = 40,
                  line_detection: str = "cte",
                  camera_max_centimeters: float = 15,
-                 camera_scale: float = 6.7):
+                 camera_scale: float = 4.2):
         # --- Make sure Tcl/Tk is found (needed for turtle on some installs) ---
         base_prefix = getattr(sys, 'base_prefix', sys.prefix)
         os.environ['TCL_LIBRARY'] = os.path.join(base_prefix, 'tcl', 'tcl8.6')
         os.environ['TK_LIBRARY'] = os.path.join(base_prefix, 'tcl', 'tk8.6')
 
-        self.controller = controller
+        self.ctrl = controller
         self.course_amp = course_amplitude
         self.course_freq = course_freq
         self.course_length = course_length
@@ -79,21 +79,7 @@ class LineFollowerSim:
     def get_steering_value(self, ctrl: Union[PID, MPC], cte: float) -> Tuple[float, float]:
         """
             Compute a steering command from either a PID or MPC controller.
-
-            Parameters
-            ----------
-            ctrl : PID | MPC
-                An instance of your PID or MPC controller class.
-            cte : float
-                Cross-track error (metres).
-
-            Returns
-            -------
-            Tuple[float, float]
-                steer   – steering angle in **radians**
-                latency – solver/runtime latency in **milliseconds**
-                          (0 ms when using a PID).
-            """
+        """
         if isinstance(ctrl, PID):
             steer = ctrl.compute_steering(-cte)  # scalar in, scalar out
             latency = 0.0
@@ -124,8 +110,11 @@ class LineFollowerSim:
             if self.line_detection == "camera":
                 track_offset = self.get_camera_offset()
 
+            if isinstance(self.ctrl, PID):
+                track_offset = -track_offset
+
             # --- get steering command from the chosen controller ------------------
-            steer, latency = self.get_steering_value(ctrl=self.controller, cte=track_offset)
+            steer, latency = self.ctrl.compute_steering(error=track_offset)
             steer = np.clip(steer, -self.max_steer, self.max_steer)
 
             # Log & visualise

@@ -1,26 +1,34 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import torch
+from torch2trt import TRTModule
+
+from utils import preprocess
+from jetracer.nvidia_racecar import NvidiaRacecar
+from jetcam.csi_camera import CSICamera
+
+# Import controllers from separate modules
 from controllers.PID import PID
 from controllers.MPC import MPC
 from scripts.helpers.controller_setup import ControllerSetup
-from sim_class import LineFollowerSim
-import numpy as np
+from road_follower_class import RoadFollower
 
 # === Select Sim Modes ---------------------------------------------------------
 ''' controller types: 
     - pid : use a Proportional Integral Differential Controller
     - mpc : use Model Predictive Controller              
 '''
-''' detection_methods types:
-    - cte : use the exact Cross Track Error, which is the perpendicular distance between the car and the track
-    - camera : use the simulation camera value of track distance          
-'''
-controller = "pid"
-detection_method = "camera"
+controller = "mpc"
 
-# === Reference path === -------------------------------------------------------
-starting_offset = 0 # (m)
-course_length: int = 1200
-course_amp  = 0.5
-course_freq = 0.7
+throttle_gain   = 0.8
+camera_scale = 4
+
+# === PID parameters === ---------------------------------------
+KP = 2.0
+KI = 0.1
+KD = 0.2
+integral_reset = None
 
 # === MPC parameters === ---------------------------------------
 N  = 40          # prediction horizon
@@ -33,22 +41,11 @@ max_cte = None # max cte
 w_y     = 5.0   # weight on lateral error (y)
 w_delta = 0.5    # weight on steering usage (delta)
 
-# === PID parameters === ---------------------------------------
-KP = 2.0
-KI = 0.1
-KD = 0.2
-integral_reset = None
-
-def run_sim(controller: PID | MPC) -> None:
-    sim = LineFollowerSim(
-                 controller=controller,
-                 course_length = course_length,
-                 car_velocity= v,
-                 car_starting_offset = starting_offset,
-                 course_amplitude = course_amp,
-                 course_freq = course_freq,
-                 line_detection= detection_method )
-    sim.run()
+# === Constants ===
+model_path      = 'trained_models/updated_model_trt.pth'
+cam_w, cam_h    = 224, 224
+cam_fps         = 65
+print_interval  = 2.0
 
 def main() -> None:
     controller_class = ControllerSetup(
@@ -63,10 +60,16 @@ def main() -> None:
         w_delta=w_delta,
     )
     ctrl = controller_class.get_controller(controller=controller)
-    run_sim(controller=ctrl)
+    follow = RoadFollower(
+        model_path=model_path,
+        controller=ctrl,
+        throttle_gain=throttle_gain,
+        cam_w=cam_w,
+        cam_h=cam_h,
+        cam_fps=cam_fps
+    )
+    follow.run(camera_scale=camera_scale)
+
 
 if __name__ == '__main__':
     main()
-
-
-
