@@ -4,13 +4,9 @@ import numpy as np
 import torch
 from torch2trt import TRTModule
 
-from utils import preprocess
 from jetracer.nvidia_racecar import NvidiaRacecar
 from jetcam.csi_camera import CSICamera
 
-# Import controllers from separate modules
-from controllers.PID import PID
-from controllers.MPC import MPC
 from scripts.helpers.controller_setup import ControllerSetup
 from road_follower_class import RoadFollower
 
@@ -48,7 +44,7 @@ cam_fps         = 65
 print_interval  = 2.0
 
 def main() -> None:
-    controller_class = ControllerSetup(
+    controller_setup = ControllerSetup(
         kp=KP,
         ki=KI,
         kd=KD,
@@ -59,7 +55,7 @@ def main() -> None:
         w_y=w_y,
         w_delta=w_delta,
     )
-    ctrl = controller_class.get_controller(controller=controller)
+    ctrl = controller_setup.get_controller(controller=controller)
     follow = RoadFollower(
         model_path=model_path,
         controller=ctrl,

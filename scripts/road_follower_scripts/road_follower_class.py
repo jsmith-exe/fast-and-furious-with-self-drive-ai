@@ -1,6 +1,6 @@
 import time
 import numpy as np
-from typing import Tuple, Union
+from typing import Union
 import torch
 from torch2trt import TRTModule
 
@@ -9,7 +9,7 @@ from jetracer.nvidia_racecar import NvidiaRacecar
 from jetcam.csi_camera import CSICamera
 
 from controllers.PID import PID
-from controllers.MPC import MPC
+from controllers.MPC_real_life import MPC
 
 class RoadFollower:
     def __init__(
