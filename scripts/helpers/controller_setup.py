@@ -1,13 +1,14 @@
 import numpy as np
 from controllers.PID import PID
 from controllers.MPC import MPC
+from typing import Union
 
 class ControllerSetup:
     def __init__(self,
                  kp: float = 0,
                  kd: float = 0,
                  ki: float = 0,
-                 integral_reset: float | None = None,
+                 integral_reset: Union[float, None] = None,
                  max_steer: float = 0,
                  n_states: int = 1,
                  n_controls: int = 1,
@@ -33,7 +34,7 @@ class ControllerSetup:
         # Minimal lateral-integrator model:  ẏ = δ
         return lambda y, d: d
 
-    def get_controller(self, controller: str) -> PID | MPC | None:
+    def get_controller(self, controller: str) -> Union[PID, MPC, None]:
         if controller == "pid":
             return PID(Kp=self.kp, Ki=self.ki, Kd=self.ki, integral_reset=self.integral_reset, max_value=self.max_steer)
         elif controller == "mpc":

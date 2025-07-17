@@ -9,7 +9,7 @@ from jetracer.nvidia_racecar import NvidiaRacecar
 from jetcam.csi_camera import CSICamera
 
 from controllers.PID import PID
-from controllers.MPC_real_life import MPC
+from controllers.MPC import MPC
 
 class RoadFollower:
     def __init__(
@@ -32,7 +32,8 @@ class RoadFollower:
         # Car setup
         self.car = NvidiaRacecar()
         self.car.steering_gain = -1.0    # no additional gain here
-        self.car.throttle     = throttle_gain
+        self.car.throttle     = 0
+        self.throttle_gain = throttle_gain
 
         # Camera setup
         self.camera = CSICamera(width=cam_w, height=cam_h, capture_fps=cam_fps)
@@ -42,6 +43,10 @@ class RoadFollower:
 
     def get_camera_offset(self, camera_scale) -> float:
         return self.camera_reading / camera_scale
+
+    def process_steering_value(self, steer_radians: float) -> float:
+        steer_degrees = np.rad2deg(steer_radians)
+        return steer_degrees / np.rad2deg(self.ctrl.u_bounds[1])
 
     def run(self, camera_scale: float) -> None:
         try:
@@ -59,11 +64,16 @@ class RoadFollower:
 
                 # 3) Compute steering via selected controller
                 steer, latency = self.ctrl.compute_steering(error=cte)
-                steer = np.clip(steer, -1, 1)
-                self.car.steering = steer
+                steer_rad = steer
+                if camera_scale is not 1:
+                    steer = self.process_steering_value(steer_radians=steer)
+                steer_clipped = np.clip(steer, -1, 1)
+                self.car.steering = steer_clipped
+
+                self.car.throttle = self.throttle_gain
 
                 # 4) Periodic Logging
-                print(f"camera: {self.camera:.3f}, steering: {steer:.3f}, throttle: {self.car.throttle:.3f}")
+                print(f"camera: {self.camera_reading:+.3f}, steering: {steer_clipped:+.3f}, latency: {latency:.3f} ms, throttle: {self.car.throttle:.3f}")
 
         except KeyboardInterrupt:
             print("\nKeyboardInterrupt detected. Stopping motors...")

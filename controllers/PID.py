@@ -26,6 +26,7 @@ class PID(ControlStrategy):
         self.max_value = max_value
 
     def compute_steering(self, error: float) -> Tuple[float, float]:
+        tic = time.time()
         dt = (time.time() - self.last_time)
         if dt < self.delay:
             return self.prev_value, 0.0
@@ -48,6 +49,8 @@ class PID(ControlStrategy):
         self.prev_error = error
         self.last_time = time.time()
 
+        latency_ms = (time.time() - tic) * 1000.0
+
         #time.sleep(self.delay)
         self.prev_value = output
-        return output, 0.0
+        return output, latency_ms

@@ -54,6 +54,7 @@ class MPC(ControlStrategy):
         self.dt = dt
         self.f = f
         self.discrete_dynamics = discrete_dynamics
+        self.u_bounds = u_bounds
 
         self.opti = ca.Opti()
 
@@ -136,3 +137,4 @@ class MPC(ControlStrategy):
 
         control = float(sol.value(self.U[0, 0]))
         return control, latency_ms
+
