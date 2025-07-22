@@ -3,8 +3,8 @@
 import numpy as np
 
 from scripts.helpers.controller_setup import ControllerSetup
-from jetracer_class import JetracerInitializer
-from road_follower_class_2 import RoadFollower
+from scripts.road_follower_scripts.jetracer_class import JetracerInitializer
+from road_follower_class import RoadFollower
 
 # === Select Sim Modes ---------------------------------------------------------
 ''' controller types: 

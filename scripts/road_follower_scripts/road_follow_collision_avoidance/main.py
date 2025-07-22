@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from utils import preprocess
+from scripts.road_follower_scripts.utils import preprocess
 import torch
 from typing import Tuple
 
 from scripts.helpers.controller_setup import ControllerSetup
-from jetracer_class import JetracerInitializer
-from road_follower_class import RoadFollower
+from scripts.road_follower_scripts.jetracer_class import JetracerInitializer
+from road_follower_collision_class import RoadFollower
 from collision_avoidance_class import CollisionAvoidance
 
 # === Select Sim Modes ---------------------------------------------------------

@@ -1,8 +1,8 @@
 import numpy as np
 import torch
-from utils import preprocess
+from scripts.road_follower_scripts.utils import preprocess
 
-from jetracer_class import JetracerInitializer
+from scripts.road_follower_scripts.jetracer_class import JetracerInitializer
 
 class RoadFollower:
     def __init__(self, jetracer: JetracerInitializer) -> None:

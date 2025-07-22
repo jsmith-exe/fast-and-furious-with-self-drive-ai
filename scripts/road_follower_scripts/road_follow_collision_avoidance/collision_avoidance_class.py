@@ -1,7 +1,6 @@
 from time import sleep
-import numpy as np
 
-from jetracer_class import JetracerInitializer
+from scripts.road_follower_scripts.jetracer_class import JetracerInitializer
 
 class CollisionAvoidance:
     def __init__(self, jetracer: JetracerInitializer) -> None:

@@ -3,7 +3,6 @@ from typing import Union
 import torch
 from torch2trt import TRTModule
 
-from utils import preprocess
 from jetracer.nvidia_racecar import NvidiaRacecar
 from jetcam.csi_camera import CSICamera
 
