@@ -53,7 +53,6 @@ Ensure that the JetRacer is on a flat surface and has enough space to drive arou
 
 ## 📚 References
 
-1. **Model Predictive Control**: For understanding the MPC algorithm used in this project, refer to [this paper](https://www.example.com).
-2. **JetRacer Documentation**: For more details on the hardware and software setup, check the [official documentation](https://docs.nvidia.com/jetson/archives/l4t-archive-r34_1_1/index.html).
-3. **JetRacer ROS AI Kit**: The hardware and ROS setup was based on the guide at [Waveshare JetRacer ROS AI Kit](https://www.waveshare.com/wiki/JetRacer_ROS_AI_Kit).
-4. **Related Student Project**: Reference implementation and ideas from [Efficient Autonomous Obstacles Avoidance on JetRacer](https://gitlab.eeecs.qub.ac.uk/3048777/csc-3002-efficient-autonomous-obstacles-avoidance-on-jetracer-1-2025).
+1. **JetRacer Documentation**: For more details on the hardware and software setup, check the [official documentation](https://docs.nvidia.com/jetson/archives/l4t-archive-r34_1_1/index.html).
+2. **JetRacer ROS AI Kit**: The hardware and ROS setup was based on the guide at [Waveshare JetRacer ROS AI Kit](https://www.waveshare.com/wiki/JetRacer_ROS_AI_Kit).
+3. **Related Student Project**: Reference implementation and ideas from [Efficient Autonomous Obstacles Avoidance on JetRacer](https://gitlab.eeecs.qub.ac.uk/3048777/csc-3002-efficient-autonomous-obstacles-avoidance-on-jetracer-1-2025).
