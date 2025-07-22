@@ -8,8 +8,12 @@ class RoadFollower:
     def __init__(self, jetracer: JetracerInitializer) -> None:
         self.jetracer = jetracer
         self.car = jetracer.car
+
+        # Camera and model setup
         self.camera = jetracer.camera
         self.model = jetracer.model
+
+        # Controller strategy
         self.ctrl = jetracer.ctrl
 
     def get_camera_offset(self, camera_scale) -> float:
