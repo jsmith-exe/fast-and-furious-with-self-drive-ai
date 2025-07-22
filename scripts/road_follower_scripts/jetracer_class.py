@@ -12,9 +12,10 @@ from controllers.MPC import MPC
 class JetracerInitializer:
     def __init__(
         self,
-        model_path: str,
+        road_follow_model_path: str,
         controller: Union[PID, MPC],
         throttle_gain: float = 0.3,
+        collision_avoidance_model_path: str = None,
         turning_away_duration: float = 0.5,
         turning_back_duration: float = 0.5,
         steering_away_value: float = 0.5,
@@ -25,8 +26,12 @@ class JetracerInitializer:
     ):
         # Load vision model
         self.model = TRTModule()
-        self.model.load_state_dict(torch.load(model_path))
+        self.model.load_state_dict(torch.load(road_follow_model_path))
         self.model.eval()
+
+        if collision_avoidance_model_path is not None:
+            self.model_collision = TRTModule()
+            self.model_collision.load_state_dict(torch.load(collision_avoidance_model_path))
 
         self.state = True
 

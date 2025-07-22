@@ -37,14 +37,15 @@ w_y     = 10.0   # weight on lateral error (y)
 w_delta = 0.5    # weight on steering usage (delta)
 
 # === Collision Avoidance parameters === ------------------------
-turn_away_threshold = 0.8  
+turn_away_threshold = 0.5  
 turning_away_duration = 0.5  # [s] time to turn away
 turning_back_duration = 0.5  # [s] time to turn back
 steering_away_value = 0.5    # steering value to turn away  
 steering_back_value = -0.5   # steering value to turn back
 
 # === Constants ===
-model_path      = 'scripts/road_follower_scripts/trained_models/updated_model_trt.pth'
+road_follow_model_path      = 'scripts/road_follower_scripts/trained_models/updated_model_trt.pth'
+collision_avoidance_path = 'scripts/road_follower_scripts/trained_models/best_model_resnet18_3class_trt.pth'
 cam_w, cam_h    = 224, 224
 cam_fps         = 65
 
@@ -63,9 +64,10 @@ class RoadFollowingCollisionAvoidance:
         )
         ctrl = controller_setup.get_controller(controller=controller)
         jet = JetracerInitializer(
-            model_path=model_path,
+            road_follow_model_path=road_follow_model_path,
             controller=ctrl,
             throttle_gain=throttle_gain,
+            collision_avoidance_model_path=collision_avoidance_path,
             turning_away_duration=turning_away_duration,
             turning_back_duration=turning_back_duration,
             steering_away_value=steering_away_value,
@@ -88,13 +90,14 @@ class RoadFollowingCollisionAvoidance:
     def get_collision_probabilities(self) -> Tuple[float, float, float]:
         self.jetracer.camera_reading = self.jetracer.camera.read()
         self.jetracer.preprocessed_camera = preprocess(self.jetracer.camera_reading).half()
-        action_output = self.jetracer.model(self.jetracer.preprocessed_camera)
-        probabilities = torch.softmax(action_output, dim=1).cpu().numpy().flatten()
+        action_output = self.jetracer.model_collision(self.jetracer.preprocessed_camera)
+        probabilities = torch.softmax(action_output, dim=1) #.cpu().numpy().flatten()
         p_line_follow = probabilities[0, 0].item()
         p_left    = probabilities[0, 1].item()
         p_right   = probabilities[0, 2].item()
 
         return p_line_follow, p_left, p_right
+
 
     def run(self) -> None:
         camera_vector = self.get_correct_camera_vector(controller=controller)
