@@ -32,11 +32,8 @@ This structure separates control logic from the main application, making it easi
    git clone https://gitlab.eeecs.qub.ac.uk/40401789/fast-and-furious-with-self-drive-ai.git
    cd fast-furious-self-drive-ai
    ```
-2. Install the required packages:  
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Set up the JetRacer hardware and software environment as per the [JetRacer setup guide](https://docs.nvidia.com/jetson/archives/l4t-archive-r34_1_1/index.html).
+
+2. Set up the JetRacer hardware and software environment as per the [JetRacer setup guide](https://www.waveshare.com/wiki/JetRacer_ROS_AI_Kit).
 
 ---
 
@@ -53,6 +50,6 @@ Ensure that the JetRacer is on a flat surface and has enough space to drive arou
 
 ## 📚 References
 
-1. **JetRacer Documentation**: For more details on the hardware and software setup, check the [official documentation](https://docs.nvidia.com/jetson/archives/l4t-archive-r34_1_1/index.html).
-2. **JetRacer ROS AI Kit**: The hardware and ROS setup was based on the guide at [Waveshare JetRacer ROS AI Kit](https://www.waveshare.com/wiki/JetRacer_ROS_AI_Kit).
-3. **Related Student Project**: Reference implementation and ideas from [Efficient Autonomous Obstacles Avoidance on JetRacer](https://gitlab.eeecs.qub.ac.uk/3048777/csc-3002-efficient-autonomous-obstacles-avoidance-on-jetracer-1-2025).
+
+1. **JetRacer ROS AI Kit**: The hardware and ROS setup was based on the guide at [Waveshare JetRacer ROS AI Kit](https://www.waveshare.com/wiki/JetRacer_ROS_AI_Kit).
+2. **Related Student Project**: Reference implementation and ideas from [Efficient Autonomous Obstacles Avoidance on JetRacer](https://gitlab.eeecs.qub.ac.uk/3048777/csc-3002-efficient-autonomous-obstacles-avoidance-on-jetracer-1-2025).
