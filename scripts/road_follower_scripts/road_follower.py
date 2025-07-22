@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import torch
-from torch2trt import TRTModule
-
-from jetracer.nvidia_racecar import NvidiaRacecar
-from jetcam.csi_camera import CSICamera
 
 from scripts.helpers.controller_setup import ControllerSetup
+from jetracer_class import JetracerInitializer
 from road_follower_class import RoadFollower
 
 # === Select Sim Modes ---------------------------------------------------------
@@ -60,7 +56,7 @@ def main() -> None:
         w_delta=w_delta,
     )
     ctrl = controller_setup.get_controller(controller=controller)
-    follow = RoadFollower(
+    jet = JetracerInitializer(
         model_path=model_path,
         controller=ctrl,
         throttle_gain=throttle_gain,
@@ -68,9 +64,10 @@ def main() -> None:
         cam_h=cam_h,
         cam_fps=cam_fps
     )
+    road_follower = RoadFollower(jetracer=jet)
 
     camera_vector = get_correct_camera_vector(controller=controller)
-    follow.run(camera_scale=camera_vector)
+    road_follower.run(camera_scale=camera_vector)
 
 
 if __name__ == '__main__':
