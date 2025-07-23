@@ -1,6 +1,6 @@
 import numpy as np
-from controllers.PID import PID
-from controllers.MPC import MPC
+from scripts.controllers.PID import PID
+from scripts.controllers.MPC import MPC
 from typing import Union
 
 class ControllerSetup:
