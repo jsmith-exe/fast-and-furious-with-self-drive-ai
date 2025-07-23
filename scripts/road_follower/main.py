@@ -13,7 +13,7 @@ from scripts.road_follower.road_follower_class import RoadFollower
 '''
 controller = "pid"
 
-throttle_gain   = 0.7
+throttle_gain   = 0.3 # throttle gain for the car
 camera_scale = 4.44
 
 # === PID parameters === ---------------------------------------
@@ -57,7 +57,7 @@ def main() -> None:
     )
     ctrl = controller_setup.get_controller(controller=controller)
     jet = JetracerInitializer(
-        model_path=model_path,
+        road_follow_model_path=model_path,
         controller=ctrl,
         throttle_gain=throttle_gain,
         cam_w=cam_w,
