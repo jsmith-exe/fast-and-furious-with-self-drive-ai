@@ -13,7 +13,7 @@ from scripts.road_follower.road_follower_class import RoadFollower
 '''
 controller = "pid"
 
-throttle_gain   = 0.3 # throttle gain for the car
+throttle_gain   = 0.4 # throttle gain for the car
 camera_scale = 4.44
 
 # === PID parameters === ---------------------------------------
@@ -23,7 +23,7 @@ KD = 0.2
 integral_reset = 0.01
 
 # === MPC parameters === ---------------------------------------
-N  = 20          # prediction horizon
+N  = 30          # prediction horizon
 dt = 0.1        # [s] integration step
 max_steer = 30  # Degree hard steering limit
 max_cte = None # max cte
