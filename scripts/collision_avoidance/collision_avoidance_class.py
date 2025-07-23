@@ -24,8 +24,10 @@ class CollisionAvoidance:
         self.car.steering = self.steering_away_value
         sleep(self.turning_away_duration)
         self.car.steering = self.steering_back_value
+        sleep(self.turning_back_duration)
 
     def left_turn(self) -> None:
         self.car.steering = -self.steering_away_value
         sleep(self.turning_away_duration)
         self.car.steering = -self.steering_back_value
+        sleep(self.turning_back_duration)

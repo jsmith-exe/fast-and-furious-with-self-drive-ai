@@ -68,8 +68,8 @@ class CollisionAvoidanceEvaluator:
 
 if __name__ == "__main__":
     evaluator = CollisionAvoidanceEvaluator(
-        trt_model_path="automated_data_box_trt.pth",
-        data_dir="automated_data",
+        trt_model_path="combined_data_model_trt.pth",
+        data_dir="combined_data",
         batch_size=1
     )
     evaluator.evaluate()

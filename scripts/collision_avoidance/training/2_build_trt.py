@@ -95,6 +95,6 @@ class TRTModelConverter:
 if __name__ == "__main__":
     converter = TRTModelConverter(num_classes=3)
     converter.setup_model()
-    converter.load_model("automated_data_box.pth")
+    converter.load_model("combined_data_model.pth")
     converter.convert_to_trt()
-    converter.save_trt_model("automated_data_box_trt.pth")
+    converter.save_trt_model("combined_data_model_trt.pth")

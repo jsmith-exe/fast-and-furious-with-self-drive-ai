@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 
+from scripts.helpers.utils import preprocess
 from scripts.helpers.jetracer_class import JetracerInitializer
 
 class RoadFollower:
@@ -25,7 +26,8 @@ class RoadFollower:
     def run(self, camera_scale: float = 1.0) -> None:
         try:
             # 1) Capture & preprocess
-            tensor = self.jetracer.preprocessed_camera
+            frame = self.camera.read()
+            tensor = preprocess(frame).half()
 
             # 2) Inference
             with torch.no_grad():

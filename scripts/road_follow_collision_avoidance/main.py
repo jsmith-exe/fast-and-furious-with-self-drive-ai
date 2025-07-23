@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import time
 import numpy as np
 from scripts.helpers.utils import preprocess
 import torch
@@ -37,15 +38,15 @@ w_y     = 10.0   # weight on lateral error (y)
 w_delta = 0.5    # weight on steering usage (delta)
 
 # === Collision Avoidance parameters === ------------------------
-turn_away_threshold = 0.5  
-turning_away_duration = 0.5  # [s] time to turn away
-turning_back_duration = 0.5  # [s] time to turn back
-steering_away_value = 0.5    # steering value to turn away  
-steering_back_value = -0.5   # steering value to turn back
+turn_away_threshold = 0.4  
+turning_away_duration = 1.4  # [s] time to turn away
+turning_back_duration = 1.5  # [s] time to turn back
+steering_away_value = 0.8    # steering value to turn away  
+steering_back_value = -0.8   # steering value to turn back
 
 # === Constants ===
 road_follow_model_path      = 'scripts/trained_models/updated_model_trt.pth'
-collision_avoidance_path = 'scripts/trained_models/best_model_resnet18_3class_trt.pth'
+collision_avoidance_path = 'scripts/trained_models/combined_data_model_trt.pth'
 cam_w, cam_h    = 224, 224
 cam_fps         = 65
 
@@ -77,6 +78,10 @@ class RoadFollowingCollisionAvoidance:
             cam_fps=cam_fps
         )
 
+        self.state = "follow"  # initial state
+        self.cooldown_duration = 3.0
+        self.cooldown_until = 0.0
+
         self.jetracer = jet
         self.road_follower = RoadFollower(jetracer=jet)
         self.collision_avoidance = CollisionAvoidance(jetracer=jet)
@@ -88,9 +93,9 @@ class RoadFollowingCollisionAvoidance:
             return 1
 
     def get_collision_probabilities(self) -> Tuple[float, float, float]:
-        self.jetracer.camera_reading = self.jetracer.camera.read()
-        self.jetracer.preprocessed_camera = preprocess(self.jetracer.camera_reading).half()
-        action_output = self.jetracer.model_collision(self.jetracer.preprocessed_camera)
+        frame = self.jetracer.camera.read()
+        tensor = preprocess(frame).half()
+        action_output = self.jetracer.model_collision(tensor)
         probabilities = torch.softmax(action_output, dim=1) #.cpu().numpy().flatten()
         p_line_follow = probabilities[0, 0].item()
         p_left    = probabilities[0, 1].item()
@@ -103,6 +108,15 @@ class RoadFollowingCollisionAvoidance:
         camera_vector = self.get_correct_camera_vector(controller=controller)
         
         while True:
+
+            now = time.time()
+
+            # ───── 1. If we are inside the cool-down window, just follow the line ─────
+            if now < self.cooldown_until:
+                self.road_follower.run(camera_scale=camera_vector)
+                continue           # ← skip the rest of the logic for this iteration
+                
+
             p_line_follow, p_left, p_right = self.get_collision_probabilities()
             
             if p_line_follow <= turn_away_threshold: # Turn away if the model predicts a collision
@@ -111,10 +125,16 @@ class RoadFollowingCollisionAvoidance:
                 '''
                 if p_left > p_right:
                     print("Turning left to avoid collision...")
+                    self.state = "turn_left"
                     self.collision_avoidance.left_turn()
+
                 else:
                     print("Turning right to avoid collision...")
+                    self.state = "turn_right"
                     self.collision_avoidance.right_turn()
+
+                self.cooldown_until = time.time() + self.cooldown_duration
+
             else: # Follow the road
                 self.road_follower.run(camera_scale=camera_vector)
 
