@@ -18,7 +18,7 @@ from scripts.collision_avoidance.collision_avoidance_class import CollisionAvoid
 '''
 controller = "pid"
 
-throttle_gain   = 0.7
+throttle_gain   = 0.9
 camera_scale = 4.44
 
 # === PID parameters === ---------------------------------------
@@ -41,8 +41,8 @@ w_delta = 0.5    # weight on steering usage (delta)
 turn_away_threshold = 0.4  
 turning_away_duration = 0.36 / throttle_gain  # [s] time to turn away
 turning_back_duration = 0.36 / throttle_gain  # [s] time to turn back
-steering_away_value = 0.8    # steering value to turn away  
-steering_back_value = -0.8   # steering value to turn back
+steering_away_value = 0.9    # steering value to turn away  
+steering_back_value = -0.9   # steering value to turn back
 
 # === Constants ===
 road_follow_model_path      = 'scripts/trained_models/updated_model_trt.pth'
@@ -78,7 +78,6 @@ class RoadFollowingCollisionAvoidance:
             cam_fps=cam_fps
         )
 
-        self.state = "follow"  # initial state
         self.cooldown_duration = 2.0
         self.cooldown_until = 0.0
 
@@ -127,11 +126,13 @@ class RoadFollowingCollisionAvoidance:
                         print("Turning left to avoid collision...")
                         self.state = "turn_left"
                         self.collision_avoidance.left_turn()
+                        self.road_follower.run(camera_scale=camera_vector)
 
                     else:
                         print("Turning right to avoid collision...")
                         self.state = "turn_right"
                         self.collision_avoidance.right_turn()
+                        self.road_follower.run(camera_scale=camera_vector)
 
                     self.cooldown_until = time.time() + self.cooldown_duration
 

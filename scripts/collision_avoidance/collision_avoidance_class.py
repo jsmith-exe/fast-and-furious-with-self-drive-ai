@@ -7,13 +7,6 @@ class CollisionAvoidance:
         self.jetracer = jetracer
         self.car = jetracer.car
 
-        # Camera and model setup
-        self.camera = jetracer.camera
-        self.model = jetracer.model
-
-        # Controller strategy
-        self.ctrl = jetracer.ctrl
-
         # Obstacle avoidance parameters
         self.turning_away_duration = jetracer.turning_away_duration
         self.turning_back_duration = jetracer.turning_back_duration
@@ -21,17 +14,19 @@ class CollisionAvoidance:
         self.steering_back_value = jetracer.steering_back_value
 
     def right_turn(self) -> None:
+        self.jetracer.car.throttle = 0.5
+        turning_away_duration = 0.36 / self.jetracer.car.throttle
+        turning_back_duration = 0.36 / self.jetracer.car.throttle 
         self.car.steering = self.steering_away_value
-        sleep(self.turning_away_duration)
+        sleep(turning_away_duration)
         self.car.steering = self.steering_back_value
-        sleep(self.turning_back_duration)
-        self.car.steering = 0.5
-        sleep(0.5)
+        sleep(turning_back_duration)
 
     def left_turn(self) -> None:
+        self.jetracer.car.throttle = 0.5
+        turning_back_duration = 0.36 / self.jetracer.car.throttle
+        turning_away_duration = 0.36 / self.jetracer.car.throttle
         self.car.steering = -self.steering_away_value
-        sleep(self.turning_away_duration)
+        sleep(turning_away_duration)
         self.car.steering = -self.steering_back_value
-        sleep(self.turning_back_duration)
-        self.car.steering = -0.5
-        sleep(0.5)
+        sleep(turning_back_duration)
