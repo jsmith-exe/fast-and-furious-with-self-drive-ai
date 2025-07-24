@@ -18,13 +18,13 @@ from scripts.collision_avoidance.collision_avoidance_class import CollisionAvoid
 '''
 controller = "pid"
 
-throttle_gain   = 0.3
+throttle_gain   = 0.7
 camera_scale = 4.44
 
 # === PID parameters === ---------------------------------------
-KP = 0.85 # 1
+KP = 1.0 # 1
 KI = 0.1
-KD = 0.2
+KD = 0.4
 integral_reset = 0.01
 
 # === MPC parameters === ---------------------------------------
@@ -39,8 +39,8 @@ w_delta = 0.5    # weight on steering usage (delta)
 
 # === Collision Avoidance parameters === ------------------------
 turn_away_threshold = 0.4  
-turning_away_duration = 1.4  # [s] time to turn away
-turning_back_duration = 1.5  # [s] time to turn back
+turning_away_duration = 0.36 / throttle_gain  # [s] time to turn away
+turning_back_duration = 0.36 / throttle_gain  # [s] time to turn back
 steering_away_value = 0.8    # steering value to turn away  
 steering_back_value = -0.8   # steering value to turn back
 
@@ -79,7 +79,7 @@ class RoadFollowingCollisionAvoidance:
         )
 
         self.state = "follow"  # initial state
-        self.cooldown_duration = 3.0
+        self.cooldown_duration = 2.0
         self.cooldown_until = 0.0
 
         self.jetracer = jet
@@ -106,37 +106,44 @@ class RoadFollowingCollisionAvoidance:
 
     def run(self) -> None:
         camera_vector = self.get_correct_camera_vector(controller=controller)
-        
-        while True:
+    
+        try:
+            while True:
+                now = time.time()
 
-            now = time.time()
+                # ───── 1. If we are inside the cool-down window, just follow the line ─────
+                if now < self.cooldown_until:
+                    self.road_follower.run(camera_scale=camera_vector)
+                    continue           # ← skip the rest of the logic for this iteration
+                    
 
-            # ───── 1. If we are inside the cool-down window, just follow the line ─────
-            if now < self.cooldown_until:
-                self.road_follower.run(camera_scale=camera_vector)
-                continue           # ← skip the rest of the logic for this iteration
+                p_line_follow, p_left, p_right = self.get_collision_probabilities()
                 
+                if p_line_follow <= turn_away_threshold: # Turn away if the model predicts a collision
+                    ''' If the model predicts a collision, turn away from the road
+                        and then turn back to the road.
+                    '''
+                    if p_left > p_right:
+                        print("Turning left to avoid collision...")
+                        self.state = "turn_left"
+                        self.collision_avoidance.left_turn()
 
-            p_line_follow, p_left, p_right = self.get_collision_probabilities()
-            
-            if p_line_follow <= turn_away_threshold: # Turn away if the model predicts a collision
-                ''' If the model predicts a collision, turn away from the road
-                    and then turn back to the road.
-                '''
-                if p_left > p_right:
-                    print("Turning left to avoid collision...")
-                    self.state = "turn_left"
-                    self.collision_avoidance.left_turn()
+                    else:
+                        print("Turning right to avoid collision...")
+                        self.state = "turn_right"
+                        self.collision_avoidance.right_turn()
 
-                else:
-                    print("Turning right to avoid collision...")
-                    self.state = "turn_right"
-                    self.collision_avoidance.right_turn()
+                    self.cooldown_until = time.time() + self.cooldown_duration
 
-                self.cooldown_until = time.time() + self.cooldown_duration
+                else: # Follow the road
+                    self.road_follower.run(camera_scale=camera_vector)
 
-            else: # Follow the road
-                self.road_follower.run(camera_scale=camera_vector)
+        except KeyboardInterrupt:
+            print("\nKeyboardInterrupt detected. Stopping motors...")
+            # Stop the car safely
+            self.jetracer.car.steering = 0
+            self.jetracer.car.throttle = 0
+            print("Motors stopped.")
 
 
 if __name__ == '__main__':
