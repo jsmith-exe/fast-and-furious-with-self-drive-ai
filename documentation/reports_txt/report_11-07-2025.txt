@@ -17,3 +17,4 @@ Brief Report (any progress, thoughts, and development achievements):
 2.	Video Recording – Recorded and edited a progress video to highlight the speed increase achieved.
 3.	MPC Line Following Simulation – Developed line following using a model predictive controller within a Python simulation.
 4.	File Efficiency – All road following files, with the exception of one model training file, have now been converted to Python instead of Jupyter notebooks. This has led to faster load times.
+.
