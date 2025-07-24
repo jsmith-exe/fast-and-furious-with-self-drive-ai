@@ -1,18 +1,14 @@
-
 import cv2
 import numpy as np
 from jetcam.csi_camera import CSICamera
 import collections
 from flask import Flask, Response
-import rospy
-from std_msgs.msg import Float32
-
 
 # === HSV Color Range for Bottle Detection ===
 # TUNE HERE: Set the lower and upper HSV bounds for your bottle color
 # Example: For a maroon bottle, start with these and adjust as needed
-LOWER_H = 140  # Hue lower bound (0-180)
-UPPER_H = 160  # Hue upper bound (0-180)
+LOWER_H = 0   # Hue lower bound (0-180)
+UPPER_H = 150  # Hue upper bound (0-180)
 LOWER_S = 60  # Saturation lower bound (0-255)
 UPPER_S = 225 # Saturation upper bound (0-255)
 LOWER_V = 60  # Value lower bound (0-255)
@@ -26,29 +22,19 @@ print(f"Tuning HSV: LOWER_HSV={LOWER_HSV}, UPPER_HSV={UPPER_HSV}")
 REFERENCE_DISTANCE = 0.20  # meters
 REFERENCE_WIDTH = 38  # Set this to the width (pixels) at REFERENCE_DISTANCE
 
-
 bottle_camera = CSICamera(width=224, height=224, capture_fps=65)
-# camera.running = True  # Removed for direct frame reading
 bbox_history = collections.deque(maxlen=5)
-
-
 app = Flask(__name__)
-
-
-
-bottle_camera.running = False
-cv2.destroyAllWindows()
 
 def gen_frames():
     print(f"Current HSV bounds: LOWER_HSV={LOWER_HSV}, UPPER_HSV={UPPER_HSV}")
-    filtered_distance = None
-    alpha = 0.2  # Smoothing factor for low-pass filter (0 < alpha <= 1)
-    # ROS publisher for distance
-    rospy.init_node('bottle_distance_publisher', anonymous=True)
-    distance_pub = rospy.Publisher('/camera_distance', Float32, queue_size=1)
-    while not rospy.is_shutdown():
+    while True:
         frame = bottle_camera.read()
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        h, w, _ = hsv.shape
+        center_x, center_y = w // 2, h // 2
+        center_hsv = hsv[center_y, center_x].tolist()
+        print(f"Center HSV at ({center_x},{center_y}): {center_hsv}")
         hsv_blur = cv2.GaussianBlur(hsv, (7,7), 0)
         mask = cv2.inRange(hsv_blur, LOWER_HSV, UPPER_HSV)
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((7,7), np.uint8))
@@ -68,15 +54,9 @@ def gen_frames():
                     h_box = int(np.mean([b[3] for b in bbox_history]))
                 if w_box > 0:
                     distance = REFERENCE_DISTANCE * (REFERENCE_WIDTH / w_box)
-                    if filtered_distance is None:
-                        filtered_distance = distance
-                    else:
-                        filtered_distance = alpha * distance + (1 - alpha) * filtered_distance
-                    print(f"Detected object at (x={x}, y={y}, w={w_box}, h={h_box}), Distance: {filtered_distance:.2f}m (raw: {distance:.2f}m)")
-                    # Publish filtered distance to ROS
-                    distance_pub.publish(filtered_distance)
+                    print(f"Detected object at (x={x}, y={y}, w={w_box}, h={h_box}), Distance: {distance:.2f}m")
                     cv2.rectangle(annotated, (x, y), (x+w_box, y+h_box), (0,255,0), 2)
-                    cv2.putText(annotated, f'Dist: {filtered_distance:.2f}m', (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
+                    cv2.putText(annotated, f'Dist: {distance:.2f}m', (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
         ret, buffer = cv2.imencode('.jpg', annotated)
         frame_bytes = buffer.tobytes()
         yield (b'--frame\r\n'
