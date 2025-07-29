@@ -1,11 +1,15 @@
 import numpy as np
+import rospy
 import torch
 from scripts.helpers.utils import preprocess
+from time import sleep
 
 from scripts.helpers.jetracer_class import JetracerInitializer
 
 class RoadFollower:
     def __init__(self, jetracer: JetracerInitializer) -> None:
+        rospy.on_shutdown(self.stop_motors)
+        
         self.jetracer = jetracer
         self.car = jetracer.car
 
@@ -16,6 +20,11 @@ class RoadFollower:
         # Controller strategy
         self.ctrl = jetracer.ctrl
 
+    def stop_motors(self):
+        self.jetracer.set_throttle_and_steering(throttle=0.0, steering=0.0)
+        print("Motors stopped via rospy shutdown.")
+
+
     def get_camera_offset(self, camera_scale) -> float:
         return self.jetracer.camera_reading / camera_scale
 
@@ -24,8 +33,9 @@ class RoadFollower:
         return steer_degrees / np.rad2deg(self.ctrl.u_bounds[1])
 
     def run(self, camera_scale: float = 1.0) -> None:
+        #sleep(2)  # Allow time for subscribers to connect  
         try:
-            while True:
+            while not rospy.is_shutdown():
                 # 1) Capture & preprocess
                 frame = self.camera.read()
                 tensor = preprocess(frame).half()
@@ -45,16 +55,17 @@ class RoadFollower:
                     steer = self.process_steering_value(steer_radians=steer)
 
                 steer_clipped = np.clip(steer, -1, 1)
-                self.car.steering = steer_clipped
 
                 self.car.throttle = self.jetracer.throttle_gain
+                self.car.steering = steer_clipped
+
+                #self.jetracer.set_throttle_and_steering(throttle=self.jetracer.throttle_gain, steering=steer_clipped)
 
                 # 4) Periodic Logging
-                print(f"camera: {self.jetracer.camera_reading:+.3f}, steering: {steer_clipped:+.3f}, latency: {latency:.3f} ms, throttle: {self.car.throttle:.3f}")
+                print(f"camera: {self.jetracer.camera_reading:+.3f}, steering: {steer_clipped:+.3f}, latency: {latency:.3f} ms, throttle: {self.jetracer.throttle_gain:.3f}")
 
         except KeyboardInterrupt:
             print("\nKeyboardInterrupt detected. Stopping motors...")
             # Stop the car safely
-            self.car.steering = 0
-            self.car.throttle = 0
+            self.stop_motors()
             print("Motors stopped.")

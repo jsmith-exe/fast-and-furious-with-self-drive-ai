@@ -13,13 +13,13 @@ from scripts.road_follower.road_follower_class import RoadFollower
 '''
 controller = "pid"
 
-throttle_gain   = 0.4 # throttle gain for the car
+throttle_gain   = 0.6 # throttle gain for the car
 camera_scale = 4.44
 
 # === PID parameters === ---------------------------------------
-KP = 0.85 # 1
-KI = 0.1
-KD = 0.2
+KP = 0.85 # 85
+KI = 0.1 # 0.1
+KD = 0.2 # 0.2
 integral_reset = 0.01
 
 # === MPC parameters === ---------------------------------------
@@ -39,7 +39,7 @@ cam_fps         = 65
 
 def get_correct_camera_vector(controller: str = "pid") -> float:
     if controller == "mpc":
-        return -1 * camera_scale
+        return camera_scale
     else:
         return 1
 

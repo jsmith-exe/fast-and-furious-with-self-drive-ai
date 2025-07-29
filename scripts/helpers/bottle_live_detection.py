@@ -1,22 +1,20 @@
-
 import cv2
 import numpy as np
 from jetcam.csi_camera import CSICamera
 import collections
 from flask import Flask, Response
-import rospy
-from std_msgs.msg import Float32
+import threading
 
 
 # === HSV Color Range for Bottle Detection ===
 # TUNE HERE: Set the lower and upper HSV bounds for your bottle color
 # Example: For a maroon bottle, start with these and adjust as needed
-LOWER_H = 140  # Hue lower bound (0-180)
-UPPER_H = 160  # Hue upper bound (0-180)
-LOWER_S = 60  # Saturation lower bound (0-255)
-UPPER_S = 225 # Saturation upper bound (0-255)
-LOWER_V = 60  # Value lower bound (0-255)
-UPPER_V = 225 # Value upper bound (0-255)
+LOWER_H = 10  # Hue lower bound (0-180)
+UPPER_H = 40  # Hue upper bound (0-180)
+LOWER_S = 40  # Saturation lower bound (0-255)
+UPPER_S = 140 # Saturation upper bound (0-255)
+LOWER_V = 50  # Value lower bound (0-255)
+UPPER_V = 150 # Value upper bound (0-255)
 
 LOWER_HSV = np.array([LOWER_H, LOWER_S, LOWER_V])
 UPPER_HSV = np.array([UPPER_H, UPPER_S, UPPER_V])
@@ -24,7 +22,7 @@ UPPER_HSV = np.array([UPPER_H, UPPER_S, UPPER_V])
 print(f"Tuning HSV: LOWER_HSV={LOWER_HSV}, UPPER_HSV={UPPER_HSV}")
 
 REFERENCE_DISTANCE = 0.20  # meters
-REFERENCE_WIDTH = 38  # Set this to the width (pixels) at REFERENCE_DISTANCE
+REFERENCE_WIDTH = 45  # Set this to the width (pixels) at REFERENCE_DISTANCE
 
 
 bottle_camera = CSICamera(width=224, height=224, capture_fps=65)
@@ -34,19 +32,16 @@ bbox_history = collections.deque(maxlen=5)
 
 app = Flask(__name__)
 
-
-
 bottle_camera.running = False
 cv2.destroyAllWindows()
+
+shutdown_flag = threading.Event()
 
 def gen_frames():
     print(f"Current HSV bounds: LOWER_HSV={LOWER_HSV}, UPPER_HSV={UPPER_HSV}")
     filtered_distance = None
     alpha = 0.2  # Smoothing factor for low-pass filter (0 < alpha <= 1)
-    # ROS publisher for distance
-    rospy.init_node('bottle_distance_publisher', anonymous=True)
-    distance_pub = rospy.Publisher('/camera_distance', Float32, queue_size=1)
-    while not rospy.is_shutdown():
+    while True:
         frame = bottle_camera.read()
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         hsv_blur = cv2.GaussianBlur(hsv, (7,7), 0)
@@ -73,8 +68,6 @@ def gen_frames():
                     else:
                         filtered_distance = alpha * distance + (1 - alpha) * filtered_distance
                     print(f"Detected object at (x={x}, y={y}, w={w_box}, h={h_box}), Distance: {filtered_distance:.2f}m (raw: {distance:.2f}m)")
-                    # Publish filtered distance to ROS
-                    distance_pub.publish(filtered_distance)
                     cv2.rectangle(annotated, (x, y), (x+w_box, y+h_box), (0,255,0), 2)
                     cv2.putText(annotated, f'Dist: {filtered_distance:.2f}m', (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
         ret, buffer = cv2.imencode('.jpg', annotated)

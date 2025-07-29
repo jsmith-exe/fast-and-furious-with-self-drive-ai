@@ -1,3 +1,6 @@
+# This file has been replaced by object_live_width_display.py
+
+import cv2
 import cv2
 import numpy as np
 from jetcam.csi_camera import CSICamera
@@ -8,7 +11,7 @@ from flask import Flask, Response
 # TUNE HERE: Set the lower and upper HSV bounds for your bottle color
 # Example: For a maroon bottle, start with these and adjust as needed
 LOWER_H = 0   # Hue lower bound (0-180)
-UPPER_H = 60  # Hue upper bound (0-180)
+UPPER_H = 100  # Hue upper bound (0-180)
 LOWER_S = 50  # Saturation lower bound (0-255)
 UPPER_S = 255 # Saturation upper bound (0-255)
 LOWER_V = 60  # Value lower bound (0-255)

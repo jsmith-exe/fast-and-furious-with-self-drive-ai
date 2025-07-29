@@ -28,8 +28,8 @@ class PID(ControlStrategy):
     def compute_steering(self, error: float) -> Tuple[float, float]:
         tic = time.time()
         dt = (time.time() - self.last_time)
-        if dt < self.delay:
-            return self.prev_value, 0.0
+        '''if dt < self.delay:
+            return self.prev_value, 0.0'''
 
         if self.integral_reset is not None:
             if abs(error) <= self.integral_reset:

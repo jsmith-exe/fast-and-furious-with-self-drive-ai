@@ -2,6 +2,8 @@ import time
 from typing import Union
 import torch
 from torch2trt import TRTModule
+import rospy
+from geometry_msgs.msg import Twist
 
 from jetracer.nvidia_racecar import NvidiaRacecar
 from jetcam.csi_camera import CSICamera
@@ -39,10 +41,15 @@ class JetracerInitializer:
         self.ctrl = controller
 
         # Car setup
+        rospy.init_node('car_cmd_vel_commander')
+        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+        self.twist = Twist()
+        self.throttle_gain = throttle_gain
+
         self.car = NvidiaRacecar()
         self.car.steering_gain = -1.0    # no additional gain here
-        self.car.throttle     = 0
-        self.throttle_gain = throttle_gain
+        self.car.throttle     = 0 
+        
 
         # Obstracle avoidance parameters
         self.turning_away_duration = turning_away_duration
@@ -56,3 +63,16 @@ class JetracerInitializer:
         self.preprocessed_camera: float = 0.0
 
         self._last_print = time.time()
+    
+    def set_throttle(self, value: float):
+        self.twist.linear.x = value
+        self.cmd_vel_pub.publish(self.twist)
+
+    def set_steering(self, value: float):
+        self.twist.angular.z = -value
+        self.cmd_vel_pub.publish(self.twist)
+
+    def set_throttle_and_steering(self, throttle: float, steering: float):
+        self.twist.linear.x = throttle
+        self.twist.angular.z = -steering  # Flip sign: left = neg, right = pos
+        self.cmd_vel_pub.publish(self.twist)
