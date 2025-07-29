@@ -4,20 +4,12 @@ import numpy as np
 from scripts.collision_avoidance.evasive_waypoint import compute_global_evasion_waypoint
 from scripts.collision_avoidance.object_live_detection import ObjectLiveDetector
 
-from flask import Flask, Response, jsonify
-import threading
 import cv2
-
 
 class EvasionPointStreamer:
     def __init__(self, odom_topic='/odom', rate_hz=2):
         self.detector = ObjectLiveDetector()
         self.detector.start()
-
-        self.app = Flask(__name__)
-        self._setup_routes()
-        self.flask_thread = threading.Thread(target=self._run_flask, daemon=True)
-        self.flask_thread.start()
 
         self.odom_topic = odom_topic
         self.rate = rospy.Rate(rate_hz)
@@ -26,21 +18,6 @@ class EvasionPointStreamer:
 
         print(f"Subscribed to {self.odom_topic} for car position.")
 
-    def _setup_routes(self):
-        @self.app.route('/video_feed')
-        def video_feed():
-            return Response(self._gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-        @self.app.route('/evasion_data')
-        def evasion_data():
-            dist, bbox, _ = self.detector.get_latest()
-            return jsonify({
-                'distance': dist,
-                'bbox': bbox
-            })
-
-    def _run_flask(self):
-        self.app.run(host='0.0.0.0', port=5000)
 
     def _gen_frames(self):
         while True:
@@ -129,6 +106,6 @@ class EvasionPointStreamer:
 
 
 if __name__ == '__main__':
-    rospy.init_node('evasion_point_streamer')
+    rospy.init_node('evasion_point_data')
     streamer = EvasionPointStreamer()
     streamer.stream()

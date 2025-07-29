@@ -52,7 +52,7 @@ class JetracerInitializer:
 
         # Camera setup
         self.camera = CSICamera(width=cam_w, height=cam_h, capture_fps=cam_fps)
-        self.camera_reading: float = 0.0
+        self.camera_line_reading: float = 0.0
         self.preprocessed_camera: float = 0.0
 
         self._last_print = time.time()
