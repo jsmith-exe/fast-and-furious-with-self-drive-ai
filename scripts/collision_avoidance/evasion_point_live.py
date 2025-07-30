@@ -77,13 +77,13 @@ class EvasionPointStreamer:
         dist, bbox, _ = self.detector.get_latest()
         return dist, bbox
 
-    def process_evasion_point(self, x, y, theta, distance, lambda_=0.1):
+    def process_evasion_point(self, x, y, theta, distance, lambda_=0.2):
         if distance is not None:
             obstacle_pos, evade_pos = compute_global_evasion_waypoint(x, y, theta, distance, lambda_)
 
              # Step 2: Compute return point (same x as start, y = y_evade + distance)
-            return_x = x
-            return_y = evade_pos[1] + distance
+            return_x = obstacle_pos[0] + distance
+            return_y = obstacle_pos[1]
             return_pos = (return_x, return_y)
             return obstacle_pos, evade_pos, return_pos
         return None, None, None

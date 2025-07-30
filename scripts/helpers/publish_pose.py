@@ -1,11 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import rospy
 from geometry_msgs.msg import PoseStamped
-import tf.transformations as tf
+import transformations as tf
 import numpy as np
+from scripts.collision_avoidance.evasion_point_live import EvasionPointStreamer
  
 def publish_goal_pose(x, y, yaw):
-    rospy.init_node('goal_pose_publisher', anonymous=True)
+    #rospy.init_node('goal_pose_publisher', anonymous=True)
     pub = rospy.Publisher('/nmpc/goal_pose', PoseStamped, queue_size=10)
  
     # Wait for the publisher to connect
@@ -28,10 +29,26 @@ def publish_goal_pose(x, y, yaw):
     goal.pose.orientation.w = quat[3]
  
     pub.publish(goal)
-    rospy.loginfo("Published goal pose: x=%.2f, y=%.2f, yaw=%.2f rad", x, y, yaw)
- 
+    rospy.loginfo("Published goal pose: x=%.2f, y=%.2f, yaw=%.2f deg", x, y, np.rad2deg(yaw))
+
 if __name__ == '__main__':
+    rospy.init_node('evasion_point_data')
     try:
-        publish_goal_pose(1.0, 1.0, np.deg2rad(-90))  # Example: x=2.0, y=1.0, yaw=90
-    except rospy.ROSInterruptException:
-        pass
+        evasion = EvasionPointStreamer()
+        while not rospy.is_shutdown():
+            x, y, theta = evasion.get_car_position()
+            distance, bbox = evasion.get_object_position()
+            obstacle_pos, evade_pos, return_pos = evasion.process_evasion_point(x, y, theta, distance)
+
+            if evade_pos is not None and distance > 0.1:
+
+                '''print(f"Evasion point: (x={evade_pos[0]:.2f}, y={evade_pos[1]:.2f})")
+                print(f"Return point:  (x={return_pos[0]:.2f}, y={return_pos[1]:.2f})")'''
+                # Publish the evade position as a goal pose
+                #print(evade_pos)
+                publish_goal_pose(evade_pos[0], evade_pos[1], theta)  # Example: x=2.0, y=1.0, yaw=90
+                #publish_goal_pose(return_pos[0], return_pos[1], theta)  # Example: x=2.0, y=1.0, yaw=90
+                #break
+
+    except (rospy.ROSInterruptException, KeyboardInterrupt):
+        rospy.loginfo("❎ Interrupted — stopping motors")

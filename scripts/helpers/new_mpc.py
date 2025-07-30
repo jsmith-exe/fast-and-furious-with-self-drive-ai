@@ -166,7 +166,7 @@ def nmpc_node():
     pos_fb = np.array([x_fb, y_fb, yaw_fb])
     DT = 0.1
     N = 30  
-    W_q = np.diag([50, 50, 3])  
+    W_q = np.diag([100, 100, 3])  
     W_r = np.diag([1, 1])  
     W_v = 10**2*np.diag([1, 1, 1]) 
     W_dv = np.diag([100, 100])  
@@ -188,7 +188,7 @@ def nmpc_node():
         error = np.linalg.norm([x_fb-pose_ref.position.x, y_fb-pose_ref.position.y])
         vel_msg = Twist()
         V_MIN = 0.1
-        if error > 0.08:
+        if error > 0.2:
             if abs(vel[0]) < V_MIN:
                 vel[0] = V_MIN if vel[0] > 0 else -V_MIN
 

@@ -2,7 +2,7 @@ import rospy
 from nav_msgs.msg import Odometry
 import numpy as np
 from scripts.collision_avoidance.evasive_waypoint import compute_global_evasion_waypoint
-from scripts.collision_avoidance.object_live_detection import ObjectLiveDetector
+from scripts.collision_avoidance.object_detection_follow import ObjectLiveDetector
 
 import cv2
 
