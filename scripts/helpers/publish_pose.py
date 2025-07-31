@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 import rospy
-from geometry_msgs.msg import PoseStamped
-import transformations as tf
+from geometry_msgs.msg import PoseStamped, Quaternion
+#from tf.transformations import quaternion_from_euler
 import numpy as np
 from scripts.collision_avoidance.evasion_point_live import EvasionPointStreamer
+
+def yaw_to_quaternion(yaw: float) -> Quaternion:
+    """
+    Return a geometry_msgs/Quaternion representing a rotation of `yaw` around the Z axis.
+    """
+    qz = np.sin(yaw / 2.0)
+    qw = np.cos(yaw / 2.0)
+    return Quaternion(x=0.0, y=0.0, z=float(qz), w=float(qw))
  
 def publish_goal_pose(x, y, yaw):
     #rospy.init_node('goal_pose_publisher', anonymous=True)
@@ -21,12 +29,14 @@ def publish_goal_pose(x, y, yaw):
     goal.pose.position.y = y
     goal.pose.position.z = 0.0
  
-    # Convert yaw to quaternion
-    quat = tf.quaternion_from_euler(0, 0, yaw)  # roll, pitch, yaw
-    goal.pose.orientation.x = quat[0]
-    goal.pose.orientation.y = quat[1]
-    goal.pose.orientation.z = quat[2]
-    goal.pose.orientation.w = quat[3]
+    # # Convert yaw to quaternion
+    # quat = quaternion_from_euler(0, 0, yaw)  # roll, pitch, yaw
+    # goal.pose.orientation.x = quat[0]
+    # goal.pose.orientation.y = quat[1]
+    # goal.pose.orientation.z = quat[2]
+    # goal.pose.orientation.w = quat[3]
+
+    goal.pose.orientation = yaw_to_quaternion(yaw)
  
     pub.publish(goal)
     rospy.loginfo("Published goal pose: x=%.2f, y=%.2f, yaw=%.2f deg", x, y, np.rad2deg(yaw))
@@ -40,7 +50,7 @@ if __name__ == '__main__':
             distance, bbox = evasion.get_object_position()
             obstacle_pos, evade_pos, return_pos = evasion.process_evasion_point(x, y, theta, distance)
 
-            publish_goal_pose(0, 0, np.deg2rad(170))  # Example: x=2.0, y=1.0, yaw=90
+            publish_goal_pose(0, 0, np.deg2rad(90))  # Example: x=2.0, y=1.0, yaw=90
 
             '''if evade_pos is not None and distance > 0.1:
 

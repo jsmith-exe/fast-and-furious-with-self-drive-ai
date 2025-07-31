@@ -40,7 +40,7 @@ class NMPC_Terminal:
         
         rhs = ca.vertcat(vx * ca.cos(yaw),
                          vx * ca.sin(yaw),
-                         vx* ca.tan(sa) / 0.12)  
+                         vx* ca.tan(sa) / 0.15)  
                          
         ## function
         f = ca.Function('f', [states, controls], [rhs])                                   
@@ -165,8 +165,8 @@ def nmpc_node():
     yaw_fb = quaternion2Yaw(odom.pose.pose.orientation)
     pos_fb = np.array([x_fb, y_fb, yaw_fb])
     DT = 0.1
-    N = 30  
-    W_q = np.diag([300, 300, 3])  
+    N = 15  
+    W_q = np.diag([100, 100, 6])  
     W_r = np.diag([1, 1])  
     W_v = 10**2*np.diag([1, 1, 1]) 
     W_dv = np.diag([100, 100])  
@@ -180,26 +180,43 @@ def nmpc_node():
         x_fb = odom.pose.pose.position.x
         y_fb = odom.pose.pose.position.y
         yaw_fb = quaternion2Yaw(odom.pose.pose.orientation)
+        
+        # compute reference
+        x_ref   = pose_ref.position.x
+        y_ref   = pose_ref.position.y
+        yaw_ref = quaternion2Yaw(pose_ref.orientation) 
+
         pos_fb = np.array([x_fb, y_fb, yaw_fb])
         next_traj, next_cons = desired_trajectory(pos_fb, N, pose_ref)
         st = time.time()
         vel = nmpc.solve(next_traj, next_cons)
         #print("Processing time: {:.2f}s".format(time.time()-st))
-        error = np.linalg.norm([x_fb-pose_ref.position.x, y_fb-pose_ref.position.y])
-        error_angle = math.atan2(math.sin(pose_ref.orientation.z - yaw_fb), math.cos(pose_ref.orientation.z - yaw_fb))
+
+        error = np.linalg.norm([x_fb-x_ref, y_fb-y_ref])
+        delta = yaw_fb - yaw_ref
+        error_angle = math.atan2(np.sin(delta), np.cos(delta))
+
+        # rospy.loginfo(f"[NMPC] x_fb={x_fb:.2f}, y_fb={y_fb:.2f}, yaw_fb={np.rad2deg(yaw_fb):.1f}°")
+        # rospy.loginfo(f"[NMPC] x_ref={x_ref:.2f}, y_ref={y_ref:.2f}, yaw_ref={np.rad2deg(yaw_ref):.1f}°")
+        # rospy.loginfo(f"[NMPC] error={error:.3f} m, error_angle={np.rad2deg(error_angle):.1f}°")
         vel_msg = Twist()
         V_MIN = 0.08
-        if error > 0.1 and abs(error_angle) > 0.15:
-            if abs(vel[0]) < V_MIN:
-                vel[0] = V_MIN if vel[0] > 0 else -V_MIN
-
-            vel_msg.linear.x = vel[0]
-            vel_msg.angular.z = vel[1]
-
-        else:
+        if error < 0.08 and abs(error_angle) < np.deg2rad(5):
             rospy.loginfo("[NMPC] Goal reached, stopping car.")
             vel_msg.linear.x = 0.0
             vel_msg.angular.z = 0.0
+
+        else:
+            if abs(vel[0]) < V_MIN:
+                vel[0] = V_MIN if vel[0] > 0 else -V_MIN
+
+            rospy.loginfo("[NMPC] Running: Position Error=%.3fm, Angle Error =%.3f°, V=%.2f, ω=%.2f", error, np.rad2deg(error_angle), vel[0], vel[1])
+
+            vel_msg.linear.x = vel[0]
+            vel_msg.angular.z = vel[1]
+            # DEBUG
+            # vel_msg.linear.x = 0.0
+            # vel_msg.angular.z = 0.0
             
         pub_vel.publish(vel_msg)
  
