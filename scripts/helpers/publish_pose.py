@@ -50,7 +50,7 @@ if __name__ == '__main__':
             distance, bbox = evasion.get_object_position()
             obstacle_pos, evade_pos, return_pos = evasion.process_evasion_point(x, y, theta, distance)
 
-            publish_goal_pose(0, 0, np.deg2rad(90))  # Example: x=2.0, y=1.0, yaw=90
+            publish_goal_pose(0, 0, np.deg2rad(0))  # Example: x=2.0, y=1.0, yaw=90
 
             '''if evade_pos is not None and distance > 0.1:
 

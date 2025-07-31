@@ -83,8 +83,8 @@ class NMPC_Terminal:
             self.lbg.append(0.0)
             self.ubg.append(0.0)        
         for _ in range(self.N):
-            self.lbx += [-1.2, -0.7]
-            self.ubx += [1.2, 0.7]
+            self.lbx += [-1.2, -np.deg2rad(45)]
+            self.ubx += [1.2, np.deg2rad(45)]
         for _ in range(self.N+1): 
             self.lbx += [-10, -10, -np.inf] 
             self.ubx += [10, 10, np.inf]
@@ -165,8 +165,8 @@ def nmpc_node():
     yaw_fb = quaternion2Yaw(odom.pose.pose.orientation)
     pos_fb = np.array([x_fb, y_fb, yaw_fb])
     DT = 0.1
-    N = 15  
-    W_q = np.diag([100, 100, 6])  
+    N = 30  
+    W_q = np.diag([20, 20, 3])  
     W_r = np.diag([1, 1])  
     W_v = 10**2*np.diag([1, 1, 1]) 
     W_dv = np.diag([100, 100])  
@@ -200,8 +200,10 @@ def nmpc_node():
         # rospy.loginfo(f"[NMPC] x_ref={x_ref:.2f}, y_ref={y_ref:.2f}, yaw_ref={np.rad2deg(yaw_ref):.1f}°")
         # rospy.loginfo(f"[NMPC] error={error:.3f} m, error_angle={np.rad2deg(error_angle):.1f}°")
         vel_msg = Twist()
-        V_MIN = 0.08
-        if error < 0.08 and abs(error_angle) < np.deg2rad(5):
+        V_MIN = 0.2
+        thing =False
+        if thing:
+            #error < 0.08 and abs(error_angle) < np.deg2rad(5):
             rospy.loginfo("[NMPC] Goal reached, stopping car.")
             vel_msg.linear.x = 0.0
             vel_msg.angular.z = 0.0
