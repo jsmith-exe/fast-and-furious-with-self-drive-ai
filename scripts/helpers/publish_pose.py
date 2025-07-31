@@ -40,15 +40,17 @@ if __name__ == '__main__':
             distance, bbox = evasion.get_object_position()
             obstacle_pos, evade_pos, return_pos = evasion.process_evasion_point(x, y, theta, distance)
 
-            if evade_pos is not None and distance > 0.1:
+            publish_goal_pose(0, 0, np.deg2rad(170))  # Example: x=2.0, y=1.0, yaw=90
 
-                '''print(f"Evasion point: (x={evade_pos[0]:.2f}, y={evade_pos[1]:.2f})")
-                print(f"Return point:  (x={return_pos[0]:.2f}, y={return_pos[1]:.2f})")'''
+            '''if evade_pos is not None and distance > 0.1:
+
+                #print(f"Evasion point: (x={evade_pos[0]:.2f}, y={evade_pos[1]:.2f})")
+                #print(f"Return point:  (x={return_pos[0]:.2f}, y={return_pos[1]:.2f})")
                 # Publish the evade position as a goal pose
                 #print(evade_pos)
                 publish_goal_pose(evade_pos[0], evade_pos[1], theta)  # Example: x=2.0, y=1.0, yaw=90
                 #publish_goal_pose(return_pos[0], return_pos[1], theta)  # Example: x=2.0, y=1.0, yaw=90
-                #break
+                #break'''
 
     except (rospy.ROSInterruptException, KeyboardInterrupt):
         rospy.loginfo("❎ Interrupted — stopping motors")

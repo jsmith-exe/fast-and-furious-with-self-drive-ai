@@ -40,7 +40,7 @@ class NMPC_Terminal:
         
         rhs = ca.vertcat(vx * ca.cos(yaw),
                          vx * ca.sin(yaw),
-                         vx* ca.tan(sa) / 0.17)  
+                         vx* ca.tan(sa) / 0.12)  
                          
         ## function
         f = ca.Function('f', [states, controls], [rhs])                                   
@@ -166,7 +166,7 @@ def nmpc_node():
     pos_fb = np.array([x_fb, y_fb, yaw_fb])
     DT = 0.1
     N = 30  
-    W_q = np.diag([100, 100, 3])  
+    W_q = np.diag([300, 300, 3])  
     W_r = np.diag([1, 1])  
     W_v = 10**2*np.diag([1, 1, 1]) 
     W_dv = np.diag([100, 100])  
@@ -186,9 +186,10 @@ def nmpc_node():
         vel = nmpc.solve(next_traj, next_cons)
         #print("Processing time: {:.2f}s".format(time.time()-st))
         error = np.linalg.norm([x_fb-pose_ref.position.x, y_fb-pose_ref.position.y])
+        error_angle = math.atan2(math.sin(pose_ref.orientation.z - yaw_fb), math.cos(pose_ref.orientation.z - yaw_fb))
         vel_msg = Twist()
-        V_MIN = 0.1
-        if error > 0.2:
+        V_MIN = 0.08
+        if error > 0.1 and abs(error_angle) > 0.15:
             if abs(vel[0]) < V_MIN:
                 vel[0] = V_MIN if vel[0] > 0 else -V_MIN
 

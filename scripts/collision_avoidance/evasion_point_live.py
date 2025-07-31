@@ -77,7 +77,7 @@ class EvasionPointStreamer:
         dist, bbox, _ = self.detector.get_latest()
         return dist, bbox
 
-    def process_evasion_point(self, x, y, theta, distance, lambda_=0.2):
+    def process_evasion_point(self, x, y, theta, distance, lambda_=0.22):
         if distance is not None:
             obstacle_pos, evade_pos = compute_global_evasion_waypoint(x, y, theta, distance, lambda_)
 
@@ -114,7 +114,7 @@ class EvasionPointStreamer:
             else:
                 print("No object detected by camera.")
             if x is not None and y is not None and theta is not None and distance is not None:
-                obstacle_pos, evade_pos, return_pos = self.process_evasion_point(x, y, theta, distance)
+                obstacle_pos, evade_pos, return_pos = self.process_evasion_point(x, y, theta, distance+0.1)
                 if obstacle_pos and evade_pos:
                     print(f"Obstacle: (x={obstacle_pos[0]:.2f}, y={obstacle_pos[1]:.2f}), Distance: {distance:.2f} m")
                     print(f"Evasion point: (x={evade_pos[0]:.2f}, y={evade_pos[1]:.2f})")
