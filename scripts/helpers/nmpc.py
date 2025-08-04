@@ -166,7 +166,7 @@ def nmpc_node():
     pos_fb = np.array([x_fb, y_fb, yaw_fb])
     DT = 0.1
     N = 30  
-    W_q = np.diag([20, 20, 3])  
+    W_q = np.diag([20, 50, 3])  
     W_r = np.diag([1, 1])  
     W_v = 10**2*np.diag([1, 1, 1]) 
     W_dv = np.diag([100, 100])  
@@ -200,10 +200,10 @@ def nmpc_node():
         # rospy.loginfo(f"[NMPC] x_ref={x_ref:.2f}, y_ref={y_ref:.2f}, yaw_ref={np.rad2deg(yaw_ref):.1f}°")
         # rospy.loginfo(f"[NMPC] error={error:.3f} m, error_angle={np.rad2deg(error_angle):.1f}°")
         vel_msg = Twist()
-        V_MIN = 0.2
+        V_MIN = 0.3
         thing =False
         if thing:
-            #error < 0.08 and abs(error_angle) < np.deg2rad(5):
+        # if error < 0.1 and abs(error_angle) < np.deg2rad(5):
             rospy.loginfo("[NMPC] Goal reached, stopping car.")
             vel_msg.linear.x = 0.0
             vel_msg.angular.z = 0.0
@@ -211,6 +211,10 @@ def nmpc_node():
         else:
             if abs(vel[0]) < V_MIN:
                 vel[0] = V_MIN if vel[0] > 0 else -V_MIN
+            
+            # angle_deg_arr = np.rad2deg(next_traj[2])   # still an array
+            # angle_deg = float(angle_deg_arr[0])          # now a plain Python float
+            # rospy.loginfo("[NMPC] Running: angle=%.3fm", angle_deg)
 
             rospy.loginfo("[NMPC] Running: Position Error=%.3fm, Angle Error =%.3f°, V=%.2f, ω=%.2f", error, np.rad2deg(error_angle), vel[0], vel[1])
 

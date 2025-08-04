@@ -24,17 +24,24 @@ def quaternion2Yaw(orientation):
     return yaw
 
 def infinity_waypoints(a=1.0, n=100):
-    ts = np.linspace(0, 2*np.pi, n)
+    """
+    Compute a lemniscate ("∞") trajectory.
+    Returns arrays xs, ys, yaws of length n.
+    """
+    ts = np.linspace(0, 2 * np.pi, n)
     xs = a * np.sin(ts) / (1 + np.cos(ts)**2)
     ys = a * np.sin(ts) * np.cos(ts) / (1 + np.cos(ts)**2)
-    # keep heading tangent to the curve
-    yaws = np.arctan2(np.gradient(ys), np.gradient(xs))
+    # heading is tangent: arctan2(dy/dt, dx/dt)
+    dx = np.gradient(xs, ts)
+    dy = np.gradient(ys, ts)
+    yaws = np.arctan2(dy, dx)
+    yaws = np.unwrap(yaws)  # unwrap to avoid discontinuities
     return list(zip(xs, ys, yaws))
 
 # parameters
-DIST_THRESH = 0.15    
-ANGLE_THRESH = np.deg2rad(10)
-WAYPOINTS = infinity_waypoints(a=1.0, n=200)
+DIST_THRESH = 0.2    
+ANGLE_THRESH = np.deg2rad(5)
+WAYPOINTS = infinity_waypoints(a=2, n=100)
 
 # globals
 current_pose = None
@@ -61,7 +68,7 @@ def publish_goal(x, y, yaw):
     qw = cos(yaw/2.0)
     goal.pose.orientation = yaw_to_quaternion(yaw)
     pub.publish(goal)
-    rospy.loginfo(f"→ Published waypoint {wp_index}: ({x:.2f},{y:.2f})")
+    rospy.loginfo(f"→ Published waypoint {wp_index}: ({x:.2f},{y:.2f}, yaw={np.rad2deg(yaw):.1f}°)")
 
 if __name__ == "__main__":
     rospy.init_node("infinity_pose_publisher")
