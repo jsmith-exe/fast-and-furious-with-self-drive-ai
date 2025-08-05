@@ -66,12 +66,12 @@ class LineHeadingNode:
         rospy.Subscriber('/csi_cam_0/camera_info', CameraInfo, self.cam_info_cb)
         rospy.Subscriber('/csi_cam_0/image_raw', Image, self.image_cb, queue_size=1)
 
-        # Start MJPEG server
-        flask_thread = Thread(target=lambda: app.run(host='0.0.0.0', port=5000, threaded=True, use_reloader=False))
-        flask_thread.daemon = True
-        flask_thread.start()
+        # # Start MJPEG server
+        # flask_thread = Thread(target=lambda: app.run(host='0.0.0.0', port=5000, threaded=True, use_reloader=False))
+        # flask_thread.daemon = True
+        # flask_thread.start()
 
-        rospy.loginfo("[LineHeadingNode] MJPEG streaming on http://localhost:5000/video_feed")
+        # rospy.loginfo("[LineHeadingNode] MJPEG streaming on http://localhost:5000/video_feed")
         rospy.spin()
 
     def cam_info_cb(self, msg):
@@ -122,33 +122,33 @@ class LineHeadingNode:
             center_x   = w / 2.0
             lateral_px = u_near - center_x
             # Convert pixels to meters
-            half_width_m      = self.display_width_m / 2.0
+            half_width_m      = self.display_width_m * 1.8/ 2.0
             meters_per_pixel  = half_width_m / (w / 2.0)
-            lateral_m         = lateral_px * meters_per_pixel
+            known_distance = 0.1
+            known_px = 192
+            multi = known_distance / known_px
+            lateral_m         = lateral_px * multi
             fx = self.K[0,0]
             dx = u_far - u_near
             pixel_angle = np.arctan2(dx, fx)
-            # separate arrays
-            xs = np.array([u for (u, y) in mid_pts], dtype=float)
-            ys = np.array([y for (u, y) in mid_pts], dtype=float)
-            # fit x = m*y + b
-            m, b = np.polyfit(ys, xs, 1)
-            # compute yaw relative to camera: arctan(m * (fy/fx))
-            fx, fy = self.K[0,0], self.K[1,1]
-            yaw_rad = np.arctan(m * (fy/fx))
+            scale = (lateral_m / 1.8) / -0.04
+            camera_pitch_tilt = np.deg2rad(6)
+            
+            yaw_rad = pixel_angle - (camera_pitch_tilt * scale)
+
             # Annotate & publish
-            cv2.putText(frame, f"lat{lateral_m:.2f}m, yaw={np.rad2deg(yaw_rad):.2f}deg", 
+            cv2.putText(frame, f"lat{lateral_m:.3f}m, yaw={np.rad2deg(yaw_rad):.2f}deg", 
                         (10,30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,0), 2)
-            self.pub.publish(Float32MultiArray(data=[lateral_px, lateral_m, yaw_rad]))
+            self.pub.publish(Float32MultiArray(data=[lateral_m, yaw_rad]))
 
         # Draw midpoint dots
         for u, v in mid_pts:
             cv2.circle(frame, (u, v), 3, (0,255,0), -1)
 
-        # Stream frame
-        global latest_frame
-        with frame_lock:
-            latest_frame = frame.copy()
+        # # Stream frame
+        # global latest_frame
+        # with frame_lock:
+        #     latest_frame = frame.copy()
 
 if __name__ == '__main__':
     try:
