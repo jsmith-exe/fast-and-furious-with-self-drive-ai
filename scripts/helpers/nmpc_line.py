@@ -81,7 +81,7 @@ class NMPC_Terminal:
             self.lbg.append(0.0)
             self.ubg.append(0.0)        
         for _ in range(self.N):
-            self.lbx += [0.8, -np.deg2rad(45)]
+            self.lbx += [0.0, -np.deg2rad(45)]
             self.ubx += [1.2, np.deg2rad(45)]
         for _ in range(self.N+1): 
             self.lbx += [-0.5, -np.inf] 
