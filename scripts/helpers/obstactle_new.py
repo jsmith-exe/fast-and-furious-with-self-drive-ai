@@ -38,6 +38,7 @@ def video_feed():
 
 class LineHeadingNode:
     def __init__(self):
+
         rospy.init_node('line_heading_node')
         self.bridge = CvBridge()
 
@@ -172,7 +173,7 @@ class LineHeadingNode:
             # publish evasion metrics
             self.pub.publish(Float32MultiArray(data=[lateral_m, yaw_rad]))
             # annotate
-            cv2.putText(frame, f"e_lat{lateral_m:.3f}m, e_yaw={np.rad2deg(yaw_rad):.2f}deg",
+            cv2.putText(frame, f"lat={lateral_m:.3f}m, yaw={np.rad2deg(yaw_rad):.2f}deg", 
                         (10,30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,0), 2)
 
         # Compute metrics if enough points
@@ -197,11 +198,12 @@ class LineHeadingNode:
             camera_pitch_tilt = np.deg2rad(6)
             
             yaw_rad = pixel_angle - (camera_pitch_tilt * scale)
+            self.pub.publish(Float32MultiArray(data=[lateral_m, yaw_rad]))
 
             # Annotate & publish
-            cv2.putText(frame, f"lat{lateral_m:.3f}m, yaw={np.rad2deg(yaw_rad):.2f}deg", 
+            cv2.putText(frame, f"lat={lateral_m:.3f}m, yaw={np.rad2deg(yaw_rad):.2f}deg", 
                         (10,30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,0), 2)
-            self.pub.publish(Float32MultiArray(data=[lateral_m, yaw_rad]))
+            
 
         # Draw points
         if obstacle:

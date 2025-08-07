@@ -66,10 +66,10 @@ class LineHeadingNode:
         rospy.Subscriber('/csi_cam_0/camera_info', CameraInfo, self.cam_info_cb)
         rospy.Subscriber('/csi_cam_0/image_raw', Image, self.image_cb, queue_size=1)
 
-        # # Start MJPEG server
-        # flask_thread = Thread(target=lambda: app.run(host='0.0.0.0', port=5000, threaded=True, use_reloader=False))
-        # flask_thread.daemon = True
-        # flask_thread.start()
+        # Start MJPEG server
+        flask_thread = Thread(target=lambda: app.run(host='0.0.0.0', port=5000, threaded=True, use_reloader=False))
+        flask_thread.daemon = True
+        flask_thread.start()
 
         rospy.loginfo("[LineHeadingNode] MJPEG streaming on http://localhost:5000/video_feed")
         rospy.spin()
@@ -137,7 +137,7 @@ class LineHeadingNode:
             yaw_rad = pixel_angle - (camera_pitch_tilt * scale)
 
             # Annotate & publish
-            cv2.putText(frame, f"lat{lateral_m:.3f}m, yaw={np.rad2deg(yaw_rad):.2f}deg", 
+            cv2.putText(frame, f"lat={lateral_m:.3f}m, yaw={np.rad2deg(yaw_rad):.2f}deg", 
                         (10,30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,0), 2)
             self.pub.publish(Float32MultiArray(data=[lateral_m, yaw_rad]))
 
@@ -146,9 +146,9 @@ class LineHeadingNode:
             cv2.circle(frame, (u, v), 3, (0,255,0), -1)
 
         # Stream frame
-        # global latest_frame
-        # with frame_lock:
-        #     latest_frame = frame.copy()
+        global latest_frame
+        with frame_lock:
+            latest_frame = frame.copy()
 
 if __name__ == '__main__':
     try:

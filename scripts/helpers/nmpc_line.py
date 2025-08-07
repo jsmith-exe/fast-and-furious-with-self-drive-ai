@@ -81,11 +81,11 @@ class NMPC_Terminal:
             self.lbg.append(0.0)
             self.ubg.append(0.0)        
         for _ in range(self.N):
-            self.lbx += [0.0, -np.deg2rad(45)]
+            self.lbx += [0.1, -np.deg2rad(45)]
             self.ubx += [1.2, np.deg2rad(45)]
         for _ in range(self.N+1): 
-            self.lbx += [-0.5, -np.inf] 
-            self.ubx += [0.5, np.inf]
+            self.lbx += [-10.0, -np.inf] 
+            self.ubx += [10.0, np.inf]
 
         nlp_prob = {'f': obj, 'x': opt_variables, 'p':opt_params, 'g':ca.vertcat(*g)}
         opts_setting = {'ipopt.max_iter':300, 'ipopt.print_level':0, 'print_time':0, 'ipopt.acceptable_tol':1e-8, 'ipopt.acceptable_obj_change_tol':1e-6}
