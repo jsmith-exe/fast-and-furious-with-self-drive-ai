@@ -1,7 +1,7 @@
 import os, sys, turtle, numpy as np
 from typing import Tuple, Union
-from controllers.PID import PID
-from controllers.MPC import MPC
+from controllers_sim.PID import PID
+from controllers_sim.MPC import MPC
 
 class LineFollowerSim:
     def __init__(self,

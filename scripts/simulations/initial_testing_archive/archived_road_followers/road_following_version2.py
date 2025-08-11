@@ -11,7 +11,7 @@ os.environ['TCL_LIBRARY'] = os.path.join(base_prefix, 'tcl', 'tcl8.6')
 os.environ['TK_LIBRARY']  = os.path.join(base_prefix, 'tcl', 'tk8.6')
 
 from controllers.MPC import MPC          # << our new reusable controller
-from controllers.PID import PID          # << legacy option (if you want to compare)
+from scripts.road_follower.PID import PID          # << legacy option (if you want to compare)
 
 # === Reference path === -------------------------------------------------------
 STARTING_OFFSET = -5

@@ -1,6 +1,6 @@
-from controllers.PID import PID
-from controllers.MPC import MPC
-from scripts.helpers.controller_setup import ControllerSetup
+from controllers_sim.PID import PID
+from controllers_sim.MPC import MPC
+from controller_setup import ControllerSetup
 from sim_class import LineFollowerSim
 import numpy as np
 

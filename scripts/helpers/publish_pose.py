@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
+
+'''
+Publish the pose and orientation of the JetRacer to the ROS topic /nmpc/goal_pose
+'''
+
 import rospy
 from geometry_msgs.msg import PoseStamped, Quaternion
-#from tf.transformations import quaternion_from_euler
 import numpy as np
 from scripts.collision_avoidance.evasion_point_live import EvasionPointStreamer
+
+# Pose position and orientation
+x = 0               # (m)
+y = 0               # (m)
+orientation_degrees = 180   # (degrees)
 
 def yaw_to_quaternion(yaw: float) -> Quaternion:
     """
@@ -28,13 +37,6 @@ def publish_goal_pose(x, y, yaw):
     goal.pose.position.x = x
     goal.pose.position.y = y
     goal.pose.position.z = 0.0
- 
-    # # Convert yaw to quaternion
-    # quat = quaternion_from_euler(0, 0, yaw)  # roll, pitch, yaw
-    # goal.pose.orientation.x = quat[0]
-    # goal.pose.orientation.y = quat[1]
-    # goal.pose.orientation.z = quat[2]
-    # goal.pose.orientation.w = quat[3]
 
     goal.pose.orientation = yaw_to_quaternion(yaw)
  
@@ -50,17 +52,7 @@ if __name__ == '__main__':
             distance, bbox = evasion.get_object_position()
             obstacle_pos, evade_pos, return_pos = evasion.process_evasion_point(x, y, theta, distance)
 
-            publish_goal_pose(0, 0, np.deg2rad(161))  # Example: x=2.0, y=1.0, yaw=90
-
-            '''if evade_pos is not None and distance > 0.1:
-
-                #print(f"Evasion point: (x={evade_pos[0]:.2f}, y={evade_pos[1]:.2f})")
-                #print(f"Return point:  (x={return_pos[0]:.2f}, y={return_pos[1]:.2f})")
-                # Publish the evade position as a goal pose
-                #print(evade_pos)
-                publish_goal_pose(evade_pos[0], evade_pos[1], theta)  # Example: x=2.0, y=1.0, yaw=90
-                #publish_goal_pose(return_pos[0], return_pos[1], theta)  # Example: x=2.0, y=1.0, yaw=90
-                #break'''
+            publish_goal_pose(x, y, np.deg2rad(orientation_degrees)) 
 
     except (rospy.ROSInterruptException, KeyboardInterrupt):
         rospy.loginfo("❎ Interrupted — stopping motors")

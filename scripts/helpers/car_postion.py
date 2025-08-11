@@ -1,3 +1,7 @@
+'''
+Prints out the cars relative postion from its starting point, read from the /odom ROS topic
+'''
+
 import rospy
 from nav_msgs.msg import Odometry
 import numpy as np
