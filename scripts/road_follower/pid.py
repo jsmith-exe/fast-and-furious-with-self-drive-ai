@@ -7,13 +7,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from typing import Tuple
 
-class ControlStrategy(ABC):
-    @abstractmethod
-    def compute_steering(self, x_norm: float) -> float:
-        """Given normalized lateral error, return a steering command."""
-        pass
-
-class PID(ControlStrategy):
+class PID():
     def __init__(self, Kp: float, Ki: float, Kd: float, integral_reset: float = None, delay: float = 0.005, max_value: float = np.inf) -> None:
         self.Kp = Kp
         self.Ki = Ki
@@ -29,7 +23,7 @@ class PID(ControlStrategy):
 
         self.max_value = max_value
 
-    def compute_steering(self, error: float) -> Tuple[float, float]:
+    def update(self, error: float) -> Tuple[float, float]:
         tic = time.time()
         dt = (time.time() - self.last_time)
         '''if dt < self.delay:

@@ -7,7 +7,7 @@ The output is packaged in a twist message and posted to the ROS topic /cmd_vel.
 import numpy as np
 import math
 import time
-from scripts.road_follower.nmpc import NMPC
+from nmpc import NMPC
 
 import rospy
 from geometry_msgs.msg import Twist
@@ -17,7 +17,11 @@ from std_msgs.msg import Float32MultiArray
 N = 20
 DT = 0.1
 lateral_dev_weight = 200
-yaw_weight = 1
+yaw_weight = 3
+min_v = 0.4    # min speed the nmpc can output
+max_v = 1.2     # max speed the nmpc can output
+max_turning_angle = np.deg2rad(45)  # max turning angle of jetracer (degrees)
+
 
 nmpc_active = True
 def nmpc_toggle_callback(msg):
@@ -62,7 +66,15 @@ def nmpc_node():
     while time.time() - st < 2:
         r.sleep()
         continue
-    print("[INFO] Start NMPC !!!")
+    print("[INFO] NMPC node ready.")
+    print("[INFO] Press Enter to START NMPC (Ctrl+C to exit).")
+    try:
+        input()  # <-- waits for you to hit Enter
+    except EOFError:
+        # If there's no TTY (e.g., roslaunch), just start immediately
+        pass
+
+    print("[INFO] Arming… waiting for first line measurement...")  
 
     # Create the current robot position
     pos_fb = np.array([lateral_dev, heading_err]) 
@@ -70,7 +82,7 @@ def nmpc_node():
     W_r = np.diag([1, 1])  
     W_v = 10**2*np.diag([1, 1]) 
     W_dv = np.diag([100, 100])  
-    nmpc = NMPC(pos_fb, DT, N, W_q, W_r, W_v, W_dv)
+    nmpc = NMPC(pos_fb, DT, N, W_q, W_r, W_v, W_dv, min_v, max_v, max_turning_angle)
 
     # compute reference
     target = np.array([0, 0])
@@ -93,10 +105,10 @@ def nmpc_node():
         # rospy.loginfo(f"[NMPC] x_ref={x_ref:.2f}, y_ref={y_ref:.2f}, yaw_ref={np.rad2deg(yaw_ref):.1f}°")
         # rospy.loginfo(f"[NMPC] error={error:.3f} m, error_angle={np.rad2deg(error_angle):.1f}°")
         vel_msg = Twist()
-        V_MIN = 0.1
+        V_MIN_CAP = 0.1
         
-        if abs(vel[0]) < V_MIN:
-            vel[0] = V_MIN if vel[0] > 0 else -V_MIN
+        if abs(vel[0]) < V_MIN_CAP:
+            vel[0] = V_MIN_CAP if vel[0] > 0 else -V_MIN_CAP
         
         # angle_deg_arr = np.rad2deg(next_traj[2])   # still an array
         # angle_deg = float(angle_deg_arr[0])          # now a plain Python float

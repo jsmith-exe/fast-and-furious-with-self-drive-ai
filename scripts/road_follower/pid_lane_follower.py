@@ -2,20 +2,24 @@
 
 import numpy as np
 import time
-from scripts.road_follower.pid import PID
+from pid import PID
 #from jetracer.nvidia_racecar import NvidiaRacecar
 import rospy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float32MultiArray
 
-speed = 0.3 # Linear Speed
+v = 0.75 # Linear Speed
 
 # === PID parameters === ---------------------------------------
-KP = 0.85
+KP = 2.0
 KI = 0.1 
 KD = 0.2 
 integral_reset = 0.01
 max_steer = np.deg2rad(45)
+
+# --- Globals updated by callback ---
+lateral_dev = None
+heading_err = 0.0
 
 def line_callback(msg: Float32MultiArray):
     global lateral_dev, heading_err
@@ -25,16 +29,11 @@ def line_callback(msg: Float32MultiArray):
 
 class PIDFollower():
     def __init__(self):
-        # # Car setup
-        # self.car = NvidiaRacecar()
-        # self.car.steering_gain = -1.0    # no additional gain here
-        # self.car.throttle     = 0
-        # self.throttle_gain = throttle_gain
         self.steering_control = PID(Kp=KP, Ki=KI, Kd=KD, integral_reset=integral_reset, max_value=max_steer)
 
         rospy.init_node("pid_node", anonymous=True)
         rospy.Subscriber('/line/offset_yaw', Float32MultiArray, line_callback)
-        pub_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        self.pub_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.r = rospy.Rate(20)
         print("[INFO] Init Node...")
         print("[INFO] Wait 2s ...")    
@@ -54,11 +53,11 @@ class PIDFollower():
                 continue
 
             # Compute steering via PID controller
-            steer, latency = self.ctrl.compute_steering(error=lateral_dev)
+            steer, latency = self.steering_control.update(error=-lateral_dev)
 
             vel_msg = Twist()
 
-            vel_msg.linear.x = speed
+            vel_msg.linear.x = v
             vel_msg.angular.z = steer
             self.pub_vel.publish(vel_msg)
 
@@ -66,18 +65,22 @@ class PIDFollower():
             # vel_msg.linear.x = 0.0
             # vel_msg.angular.z = 0.0
 
-            # steer_clipped = np.clip(steer, -1, 1)
-            # self.car.steering = steer_clipped
-
-            # self.car.throttle = self.jetracer.throttle_gain
-
             # Periodic Logging
-            rospy.loginfo("[PID] Running: Lateral Error=%.3fm, Yaw Error=%.3f°, V=%.2f, ω=%.2f°", lateral_dev, np.rad2deg(heading_err), speed, np.rad2deg(steer))
+            rospy.loginfo("[PID] Running: Lateral Error=%.3fm, Yaw Error=%.3f°, V=%.2f, ω=%.2f°", lateral_dev, np.rad2deg(heading_err), v, np.rad2deg(steer))
 
 
 if __name__ == '__main__':
     try:
         system = PIDFollower()
+        print("[INFO] PID node ready.")
+        print("[INFO] Press Enter to START PID (Ctrl+C to exit).")
+        try:
+            input()  # <-- waits for you to hit Enter
+        except EOFError:
+            # If there's no TTY (e.g., roslaunch), just start immediately
+            pass
+
+        print("[INFO] Arming… waiting for first line measurement...")
         system.run()
     except (rospy.ROSInterruptException, KeyboardInterrupt):
         rospy.loginfo("❎ Interrupted — stopping motors")

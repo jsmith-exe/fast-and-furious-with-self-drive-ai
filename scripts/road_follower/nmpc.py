@@ -7,7 +7,7 @@ import casadi as ca
 import rospy
 
 class NMPC:
-    def __init__(self, init_pos, DT, N, W_q, W_r, W_v, W_dv):
+    def __init__(self, init_pos, DT, N, W_q, W_r, W_v, W_dv, min_v, max_v, max_turning_angle):
         self.DT = DT            # time step
         self.N = N              # horizon length
         self.W_q = W_q          # Weight matrix for states
@@ -16,6 +16,9 @@ class NMPC:
         self.W_dv = W_dv   
         self.x_guess = np.ones((self.N+1, 2))*init_pos
         self.u_guess = np.zeros((self.N, 2))
+        self.min_v = min_v
+        self.max_v = max_v
+        self.max_turning_angle = max_turning_angle
         self.setup_controller()
 
     def setup_controller(self):
@@ -76,8 +79,8 @@ class NMPC:
             self.lbg.append(0.0)
             self.ubg.append(0.0)        
         for _ in range(self.N):
-            self.lbx += [0.1, -np.deg2rad(45)]
-            self.ubx += [1.2, np.deg2rad(45)]
+            self.lbx += [self.min_v, -self.max_turning_angle]
+            self.ubx += [self.max_v, self.max_turning_angle]
         for _ in range(self.N+1): 
             self.lbx += [-10.0, -np.inf] 
             self.ubx += [10.0, np.inf]
