@@ -46,13 +46,6 @@ class LineHeadingNode:
         self.camera_height   = rospy.get_param('~camera_height', 0.3)   # camera height (m)
         self.cam_fps         = rospy.get_param('~cam_fps', 30)         # processing rate (Hz)
         self.black_thresh    = rospy.get_param('~black_thresh', 90)    # threshold for black mask
-        self.display_width_m = rospy.get_param('~display_width_m', 0.16)  # real-world width of camera view (m)
-        # Read camera tilt from vertical (degrees anticlockwise from vertical axis)
-        tilt_deg = rospy.get_param('~camera_tilt_from_vertical_deg', 45)
-        # Convert to radians and map to pitch relative to horizontal plane
-        tilt_rad = np.deg2rad(tilt_deg)
-        # When tilt is 0°, camera looks straight down; at 90°, looks forward horizontally
-        self.camera_pitch = tilt_rad - (np.pi/2)  # positive downwards tilt relative to horizontal   # camera pitch (rad)
 
         # State
         self.K         = None
