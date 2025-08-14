@@ -1,55 +1,103 @@
-# Fast & Furious with Self Drive AI
+# JetRacer: High-Speed Lane Following with MPC
 
 **Author:** Jamie Smith  
-**Date:** 2025-06-26
+**Date:** August 2025
+
+## Overview
+This project implements **lane following** on the NVIDIA JetRacer platform using a **Model Predictive Controller (MPC)**. The work also integrates obstacle detection and evasion strategies using both monocular camera and camera–LiDAR fused approaches.
+
+The repository contains:
+- LaTeX beamer presentation source (`.tex`).
+- PowerPoint (`.pptm`) version of the presentation with embedded demonstration videos.
+- Supporting code and demonstration assets.
 
 ---
 
-## 📖 Description
+## Project Summary
 
-Fast & Furious with Self Drive AI is an autonomous driving system that combines camera (and optional LiDAR) input with a Model Predictive Control (MPC) bicycle model to achieve high-speed lane following and obstacle avoidance. Building on prior research that demonstrated safe but slow self-driving, this project aims to push the performance envelope by increasing speed while maintaining safety.
+### Goals
+- Replace a basic proportional (P) controller with an advanced MPC to improve stability and speed.
+- Integrate real-time obstacle detection and avoidance into the lane-following pipeline.
+- Optimize the system for onboard processing on a Jetson Nano.
 
----
-
-## 🗂️ Codebase Structure
-
-- **controllers/**: Contains the control algorithms for the vehicle. The two main controllers are:
-  - `PID.py`: Implements a Proportional-Integral-Derivative controller for basic motion control.
-  - `MPC.py`: Implements a Model Predictive Control (MPC) bicycle model for advanced trajectory planning and control.
-
-- **scripts/road_follower_scripts/road_follower.py**: This is the main JetRacer script that runs the self-driving pipeline.
-  - It utilizes `road_follower_class.py` for the core logic and methods.
-  - The trained neural network model used for road following is stored at `scripts/road_follower_scripts/trained_models/updated_model_trt.pth`.
-
-This structure separates control logic from the main application, making it easier to maintain and extend the system.
+### JetRacer Platform
+- **Compute:** NVIDIA Jetson Nano
+- **Sensors:** Monocular forward-facing camera, 360° LiDAR (10 Hz)
+- **Drive:** Bicycle-model steering with rear-wheel drive
 
 ---
 
-## 🛠️ Installation
+## Lane Following
 
-1. Clone the repo:  
-   ```bash
-   git clone https://gitlab.eeecs.qub.ac.uk/40401789/fast-and-furious-with-self-drive-ai.git
-   cd fast-furious-self-drive-ai
-   ```
+### Vision Processing
+1. Convert camera feed to binary (black & white) for lane detection.
+2. Use edge detection to find lane boundaries.
+3. Compute **lateral deviation** and **yaw angle** relative to lane center.
 
-2. Set up the JetRacer hardware and software environment as per the [JetRacer setup guide](https://www.waveshare.com/wiki/JetRacer_ROS_AI_Kit).
+<p align="left">
+  <img src="media/gifs/lane.gif" alt="Lane Demo" width="800">
+</p>
+
+### Controllers
+- **P Controller:** Limited to low-speed operation, unstable at higher speeds.
+- **PID Controller:** Improved stability, 162% speed increase over P controller.
+- **MPC Controller:** Handles constraints, anticipates deviations, achieves up to 249% speed increase over P controller.
+
+<p align="left">
+  <img src="media/gifs/mpc_control_736.gif" alt="MPC Demo" width="800">
+</p>
 
 ---
 
-## 🚀 Usage
+## Obstacle Detection & Evasion
 
-To start the self-driving demo, run the following command:  
-```bash
-python3 scripts/road_follower_scripts/road_follower.py
-```
+### First Approach
+- HSV color thresholding to segment obstacle.
+- Distance estimation from pixel width scaling.
+- Generate evasive and return waypoints around the obstacle.
 
-Ensure that the JetRacer is on a flat surface and has enough space to drive around before starting the demo.
+<p align="left">
+  <img src="media/gifs/object_distance.gif" alt="Distance Demo" width="800">
+</p>
+
+### Second Approach
+- Shift detected lane centerline in vision pipeline by fixed pixel offset when obstacle is detected.
+- MPC tracks shifted line to naturally steer around obstacle.
+
+<p align="left">
+  <img src="media/gifs/alt_path.gif" alt="Alt Path Demo" width="800">
+</p>
 
 ---
 
-## 📚 References
+## Limitations
+- High processing load on Jetson Nano when running vision, MPC, and ROS simultaneously.
+- Sensitive to lighting conditions, lens distortion, and motion blur at high speeds.
+- Latency in processing pipeline can affect steering response.
 
+### Potential Solutions
+- GPU acceleration for vision processing.
+- Offload computation to external PC/server.
+- Algorithmic optimizations (reduced search regions, periodic detection).
 
-1. **JetRacer ROS AI Kit**: The hardware and ROS setup was based on the guide at [Waveshare JetRacer ROS AI Kit](https://www.waveshare.com/wiki/JetRacer_ROS_AI_Kit).
-2. **Related Student Project**: Reference implementation and ideas from [Efficient Autonomous Obstacles Avoidance on JetRacer](https://gitlab.eeecs.qub.ac.uk/3048777/csc-3002-efficient-autonomous-obstacles-avoidance-on-jetracer-1-2025).
+---
+
+## Demonstrations
+
+The PowerPoint version (`.pptm`) contains embedded videos showing:
+- P vs PID controller performance.
+- MPC speed and stability improvements.
+- Obstacle detection distance measurement.
+- Evasion manoeuvres for both approaches.
+
+---
+
+## Contact
+
+**GitHub:** [github.com/jsmith-exe](https://github.com/jsmith-exe)  
+![GitHub QR](https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://github.com/jsmith-exe)
+
+**LinkedIn:** [linkedin.com/in/jamie-smith-916939371](https://www.linkedin.com/in/jamie-smith-916939371/)  
+![LinkedIn QR](https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://www.linkedin.com/in/jamie-smith-916939371/)
+
+---
