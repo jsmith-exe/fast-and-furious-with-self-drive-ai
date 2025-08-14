@@ -39,9 +39,9 @@ lambda_ = 0.5                  # Sideways evasion distance [m]
 
 if __name__ == "__main__":
     # === Parameters ===
-    x0, y0 = 3.50, 2.2              # JetRacer's global position
-    theta = np.deg2rad(180)         # JetRacer heading in radians
-    d = 0.8                        # Distance to obstacle [m]
+    x0, y0 = 4.0, 2.75              # JetRacer's global position
+    theta = np.deg2rad(-155)         # JetRacer heading in radians
+    d = 1.2                        # Distance to obstacle [m]
     lambda_ = 0.5                  # Sideways evasion distance [m]
 
     # === Compute positions ===

@@ -14,7 +14,7 @@ import numpy as np
     - camera : use the simulation camera value of track distance          
 '''
 controller = "pid"
-detection_method = "camera"
+detection_method = "cte"
 
 # === Reference path === -------------------------------------------------------
 starting_offset = 0 # (m)
