@@ -1,0 +1,577 @@
+\documentclass[aspectratio=169,12pt]{beamer}
+
+% --- Theme & fonts ---
+\usetheme{Madrid}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{} % hide nav icons
+
+% --- Packages ---
+\usepackage{amsmath}
+\usepackage{caption}   % for \captionof if needed
+\usepackage{booktabs}  % optional nice tables
+\usepackage{gensymb}
+\usepackage{qrcode} % for QR codes
+\newcommand{\ghURL}{https://github.com/jsmith-exe}
+\newcommand{\liURL}{https://www.linkedin.com/in/jamie-smith-916939371/}
+
+
+
+% --- Global spacing tweaks ---
+\makeatletter
+\addtobeamertemplate{frametitle}{}{\vspace{-0.6ex}}
+\makeatother
+\setbeamersize{text margin left=0.9em, text margin right=0.9em}
+\setbeamerfont{normal text}{size=\small}
+\setlength{\parskip}{0.25em}
+
+% --- Title info ---
+\title{JetRacer: High-Speed Lane Following with MPC}
+\author{Jamie Smith}
+\date{August 2025}
+
+\begin{document}
+
+% ====================== TITLE IMAGE ======================
+\begin{frame}[t,plain]
+  \vspace*{-0.2em}
+  \centering
+  % (Image removed)
+\end{frame}
+
+
+% ====================== PROJECT OVERVIEW ======================
+\begin{frame}[t]{Project Overview}
+  \vspace*{-0.3em}
+  \begin{columns}[T]
+    \begin{column}{0.55\textwidth}
+      \begin{itemize}\setlength{\itemsep}{0.35em}
+        \item \small 8-week project to implement lane following using a Model Predictive Controller (MPC) and integrate either a sole camera-based or camera-LiDAR-fused collision avoidance on the NVIDIA JetRacer platform.
+        \item \small Inherited a trained vision model outputting a normalised scale from \([-1,1]\) (not metres).
+        \item \small Model offset scale controlled using a P controller. Limited to low-speed operation due to stability issues.
+        \item \small \textbf{Goal:} Design and implement a more advanced control algorithm that can handle high speeds while maintaining stability and accuracy.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.45\textwidth}
+      \centering
+
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ====================== WHY IT MATTERS ======================
+\begin{frame}[t]{Why it Matters}
+  \vspace*{-0.3em}
+  \begin{itemize}\setlength{\itemsep}{0.45em}
+    \item Real autonomous driving systems combine \textbf{lane-following} control with \textbf{obstacle detection/avoidance}.
+    \item For example, Tesla's autopilot uses monocular camera-based input for its perception and control systems.
+  \end{itemize}
+\end{frame}
+
+% ====================== JETRACER PLATFORM ======================
+\begin{frame}[t]{JetRacer Platform}
+  \vspace*{-0.3em}
+  \begin{columns}[T]
+    \begin{column}{0.55\textwidth}
+      \begin{itemize}\setlength{\itemsep}{0.35em}
+        \item NVIDIA Jetson Nano for onboard compute.
+        \item Monocular camera (single forward-facing).
+        \item 360\textdegree{} LiDAR at 10\,Hz.
+        \item Bicycle-model steering (front wheels steer together).
+        \item Rear-wheel drive chassis.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.45\textwidth}
+      \centering
+
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ====================== VISION: PIPELINE ======================
+\begin{frame}[t]{Lane Following: Vision Processing}
+  \vspace*{-0.3em}
+  \textbf{Goal:} Estimate \textit{lateral deviation} and \textit{relative yaw} of the JetRacer w.r.t. the lane.
+
+  \vspace{0.3em}
+  \begin{columns}[T]
+    \begin{column}{0.58\textwidth}
+      \textbf{Lane Centre Detection}
+      \begin{itemize}\setlength{\itemsep}{0.3em}
+  
+        \item Convert image to black \& white.
+        \item Edge detection to find lane boundaries.
+        \item Midpoint between left/right edges forms a \textit{future projection line} (green dotted line).
+      \end{itemize}
+      \vspace{0.4em}
+      \textbf{Lateral Deviation (m)}
+      \begin{itemize}\setlength{\itemsep}{0.3em}
+        \item Measure horizontal pixel offset: \(e_{(px)} = \text{line}_{(px)} - \text{center}_{(px)}\)
+        \item Convert to metres:\quad
+        \(\displaystyle e_{(m)} = e_{(px)} \cdot \frac{W^{known}_{(m)}}{W^{known}_{(px)}}\).
+      \end{itemize}
+      \vspace{0.4em}
+    \end{column}
+    \begin{column}{0.42\textwidth}
+      \centering
+
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ====================== VISION: PIPELINE ======================
+\begin{frame}[t]{Lane Following: Vision Processing}
+
+  \vspace{0.3em}
+  \begin{columns}[T]
+    \begin{column}{0.58\textwidth}
+    
+      \textbf{Yaw Angle (rad)}
+      \begin{itemize}\setlength{\itemsep}{0.3em}
+        \item From gradient of the green dotted line: \( \psi_{px} = \arctan2 \left( \frac{u_{\text{far}} - u_{\text{near}}}{f_x}\right) \)
+        \item Lens curvature increases apparent gradient away from center: \(\psi_{lens} = \frac{e_{(m)}}{c} \)
+        \item Calibrate curvature at max deviation and subtract from raw slope: \(\psi_{yaw} = \psi_{px} - \psi_{lens}\)
+      \end{itemize}
+      Given:
+        {\footnotesize
+        \begin{itemize}\setlength{\itemsep}{0.3em}
+          \item \(f_x=\) focal length in pixels.
+          \item \(u_{\text{far}}, u_{\text{near}} =\) horizontal pixel coordinates of lane points.
+          \item \(e_{(m)} =\) lateral deviation in meters.
+          \item \(c=-1.454\), arbitrary constant.
+        \end{itemize}
+        }
+
+    \end{column}
+    \begin{column}{0.42\textwidth}
+      \centering
+
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ====================== PID ======================
+\begin{frame}[t]{PID Controller}
+  \vspace*{-0.3em}
+  \textbf{Mapping:} Input = \(e_{(m)}\), lateral deviation; Output = \(\theta\), steering angle.
+  \vspace{0.4em}
+  \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+      \textbf{Tuning}
+      \begin{itemize}\setlength{\itemsep}{0.35em}
+        \item \textbf{P:} Raise until sharp response with slight overshoot.
+        \item \textbf{D:} Add damping to reduce overshoot and oscillation.
+        \item \textbf{I:} Remove small steady-state errors.
+      \end{itemize}
+
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \centering
+
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ====================== PID ======================
+\begin{frame}[t]{PID Controller Results}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \centering
+      \textbf{Original P Controller} \\
+      \vspace{0.3em}
+      \rule{0pt}{5.5cm}\rule{0.9\linewidth}{0pt} % Placeholder box
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+      \centering
+      \textbf{PID Controller} \\
+      \vspace{0.3em}
+      \rule{0pt}{5.5cm}\rule{0.9\linewidth}{0pt} % Placeholder box
+    \end{column}
+  \end{columns}
+
+  \vspace{0.6em}
+  \centering
+  \textbf{P Control to PID Performance Increase:} \(\approx162  \%\) Speed improvement.
+\end{frame}
+
+% ====================== PID ======================
+\begin{frame}[t]{PID Controller Limitations}
+  \vspace*{-0.3em}
+    \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+      \textbf{Limitations}
+      \begin{itemize}\setlength{\itemsep}{0.35em}
+        \item Reactive only—no anticipation of future deviations.
+        \item Ignores yaw; large angular misalignments recover poorly.
+        \item No planning; high-speed tracking suffers.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \centering
+
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ====================== MPC: INTRO ======================
+\begin{frame}[t]{Model Predictive Control (MPC)}
+  \vspace*{-0.3em}
+  \textbf{Model Predictive Control} takes the dynamics and physics of the plant, in this case, the JetRacer, to solve an optimization problem to determine the best set of future control actions ot achieve the desired output.
+  \vspace{0.4em}
+  \begin{columns}[T]
+    \begin{column}{0.58\textwidth}
+      \textbf{Why MPC}
+      \begin{itemize}\setlength{\itemsep}{0.35em}
+        \item Handles multiple inputs/outputs.
+        \item Respects constraints (speed, max steering).
+        \item Plans ahead—anticipatory control for higher speeds.
+      \end{itemize}
+      \vspace{0.5em}
+      \textbf{Implementation}
+      \begin{itemize}\setlength{\itemsep}{0.35em}
+        \item Python + CasADi with IPOPT solver.
+        \item Inputs from vision: \(e\) - \emph{Lateral Deviation (m)}, \(\psi\) - \emph{Yaw (rad)}.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.42\textwidth}
+      \centering
+
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ====================== MPC: TUNING ======================
+\begin{frame}[t]{MPC Tuning \& Outcomes}
+  \vspace*{-0.3em}
+  \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+      \textbf{Tuning}
+      \begin{itemize}\setlength{\itemsep}{0.35em}
+        \item \textbf{Horizon:} \(N=20\) (20\, step lookahead).
+        \item \textbf{Weights:} Prioritised lateral deviation over yaw.
+      \end{itemize}
+      \vspace{0.6em}
+      \textbf{Outcomes}
+      \begin{itemize}\setlength{\itemsep}{0.35em}
+        \item Higher stable speeds vs PID.
+        \item Anticipates deviations; sharper recovery after misalignment.
+        \item Better lane keeping under tight curvature.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \centering
+
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ====================== MPC ======================
+\begin{frame}[t]{MPC Controller Results - Speed Comparison}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \centering
+      \textbf{PID Controller} \\
+      \vspace{0.3em}
+      \rule{0pt}{5cm}\rule{0.9\linewidth}{0pt} % Placeholder box
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+      \centering
+      \textbf{MPC Controller} \\
+      \vspace{0.3em}
+      \rule{0pt}{5cm}\rule{0.9\linewidth}{0pt} % Placeholder box
+    \end{column}
+  \end{columns}
+
+  \vspace{0.6em}
+  \centering
+  \textbf{PID to MPC Performance Increase:} \(\approx 33  \%\) Speed improvement. \newline
+  \textbf{P Control to MPC Performance Increase:} \(\approx 249  \%\) Speed improvement.
+\end{frame}
+
+% ====================== MPC ======================
+\begin{frame}[t]{MPC Controller Results - Higher Speeds}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \centering
+      \textbf{Reduced Stability} \\
+      \vspace{0.3em}
+      \rule{0pt}{5cm}\rule{0.9\linewidth}{0pt} % Placeholder box
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+      \centering
+      \textbf{Significantly Reduced Stability} \\
+      \vspace{0.3em}
+      \rule{0pt}{5cm}\rule{0.9\linewidth}{0pt} % Placeholder box
+    \end{column}
+  \end{columns}
+
+\end{frame}
+
+% ====================== MPC ======================
+\begin{frame}[t]{MPC Controller Results - Lane Regain}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \centering
+      \textbf{Regain Video} \\
+      \(\approx 45 \degree \) Regain
+      \vspace{0.3em}
+      \rule{0pt}{5cm}\rule{0.9\linewidth}{0pt} % Placeholder box
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+      \centering
+      \textbf{Error Graphs} \\
+      \vspace{0.3em}
+      \rule{0pt}{5cm}\rule{0.9\linewidth}{0pt} % Placeholder box
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ====================== MPC ======================
+\begin{frame}[t]{Lane Controller Conclusion}
+  \textbf{Performance Specifications}
+  \begin{itemize}
+      \item P Controller Top Speed: \(\approx0.211\) m/s
+      \item PID Controller Top Speed: \(\approx0.553\) m/s
+      \item MPC Controller Top Speed: \(\approx0.736\) m/s
+      
+  \end{itemize}
+  \textbf{Improvement}
+  \begin{itemize}
+      \item P Controller to PID Controller: \(\approx 162 \%\) Speed increase
+      \item PID Controller to MPC Controller: \(\approx 162 \%\) Speed increase
+      \item P Controller to MPC Controller: \(\approx 249 \%\) Speed increase
+      \item MPC Controller max regain angle: \(\approx 45 \degree\)
+      
+  \end{itemize}
+\end{frame}
+
+% ====================== VISION: LIMITATIONS ======================
+\begin{frame}[t]{Lane Following: Potential Limitations}
+  \vspace*{-0.3em}
+  \begin{columns}[T]
+    \begin{column}{0.54\textwidth}
+      \textbf{Perception}
+      \begin{itemize}\setlength{\itemsep}{0.35em}
+        \item Lighting sensitivity (shadows, glare, low light).
+        \item Lens distortion & camera pitch bias lateral/yaw estimates.
+      \end{itemize}
+      \vspace{0.6em}
+      \textbf{Calibration / Scale}
+      \begin{itemize}\setlength{\itemsep}{0.35em}
+        \item Pixel\(\rightarrow\)metre scale drifts with camera height/FOV changes.
+        \item Yaw from image slope degrades off-center without correction.
+      \end{itemize}
+    \end{column}
+    <\begin{column}{0.46\textwidth}
+      \textbf{Compute / Latency}
+      \begin{itemize}\setlength{\itemsep}{0.35em}
+        \item CPU/GPU contention with ROS + controller introduces delay.
+        \item Pipeline latency causes “late” steering at high speed.
+      \end{itemize}
+      \vspace{0.6em}
+ 
+    \end{column}
+  \end{columns}
+\end{frame}
+
+
+% ====================== OBSTACLE DETECTION ======================
+\begin{frame}[t]{Obstacle Detection: Overview}
+  \vspace*{-0.3em}
+  \begin{itemize}\setlength{\itemsep}{0.45em}
+    \item \textbf{Goal:} Detect obstacles ahead and generate a safe, minimal‑deviation path around them.
+    \item Approach 1: HSV color detection → distance via pixel width → compute evasion/return waypoints.
+    \item Approach 2: HSV color detection → dynamically offset the lane’s “green dotted line” by a fixed pixel amount (200 px) to steer around the object while staying in line‑following mode.
+  \end{itemize}
+\end{frame}
+
+% ====================== OBSTACLE DETECTION: FIRST APPROACH ======================
+\begin{frame}[t]{Obstacle Detection — First Approach - Overview}
+  \vspace*{-0.3em}
+  \textbf{Pipeline}
+  \begin{itemize}\setlength{\itemsep}{0.35em}
+    \item Segment object by colour (HSV thresholding tuned to target colour).
+    \item Measure object width in pixels: \(w_{px}\).
+    \item Estimate distance to object using pixel scaling:
+      \[
+        d_{m} = \frac{1}{w_{px}} \cdot D^{\text{known}}_{m} \cdot {W^{\text{known}}_{px}}
+      \]
+  \end{itemize}
+
+  \vspace{0.3em}
+  \textbf{Example}
+  \begin{itemize}\setlength{\itemsep}{0.35em}
+    \item Known object distance: \(D^{\text{known}}_{m} = 0.20\,\text{m}\)
+    \item Measured reference width: \(W^{\text{known}}_{px} = 42\,\text{px}\)  
+          (from scripts/\texttt{object\_detection}/\texttt{tune\_camera}/\texttt{object\_width\_pixels.py})
+    \item Current detection: \(w_{px} = 21\)
+  \end{itemize}
+\end{frame}
+
+% ====================== OBSTACLE DETECTION: FIRST APPROACH (RESULT) ======================
+\begin{frame}[t]{Obstacle Detection — First Approach - Distance Demonstration}
+  \vspace*{-0.3em}
+  \textbf{Distance Calculation}
+  \[
+    d_{m} = \frac{1}{21} \cdot 0.20 \cdot 42 = 0.40\,\text{m}
+  \]
+
+  \vspace{0.6em}
+  \textbf{Distance demonstration}
+  \vspace{1em}
+  
+  \centering
+  % Placeholder for video
+  \rule{0pt}{6cm}\rule{0.85\linewidth}{0pt} % Reserve space for video
+  
+  % Or include with media9 / multimedia package:
+  % \includemedia[
+  %   width=0.85\linewidth,
+  %   height=6cm,
+  %   activate=onclick,
+  %   addresource=video.mp4,
+  %   flashvars={source=video.mp4}
+  % ]{\includegraphics{frame.png}}{VPlayer.swf}
+\end{frame}
+
+
+
+% ====================== EVASION GEOMETRY ======================
+\begin{frame}[t]{Evasion Waypoints - First Approach - Evasion Calculation}
+  \vspace*{-0.3em}
+  \textbf{Idea:} Go around the obstacle with a lateral sidestep, then return to the lane.
+  \vspace{0.4em}
+
+  \begin{itemize}\setlength{\itemsep}{0.35em}
+    \item Given JetRacer's position \((x_0, y_0)\), heading \(\theta\), obstacle distance \(d\) (m), and desired lateral clearance \(\lambda\) (m).
+    \item Compute obstacle position in global frame:
+      \[
+        x_{\text{obs}} = x_0 + d\cos\theta,
+        \quad
+        y_{\text{obs}} = y_0 + d\sin\theta
+      \]
+    \item Compute evasive waypoint (sidestep \(\lambda\) perpendicular to heading):
+      \[
+        x_{\text{ev}} = x_{\text{obs}} - \lambda\sin\theta,
+        \quad
+        y_{\text{ev}} = y_{\text{obs}} + \lambda\cos\theta
+      \]
+      where \(\lambda > 0\) = step left, \(\lambda < 0\) = step right.
+    \item Return waypoint chosen downstream of obstacle to realign with lane:
+      \[
+        x_{\text{ret}} = x_{\text{obs}} + L\cos\theta,
+        \quad
+        y_{\text{ret}} = y_{\text{obs}} + L\sin{\theta}
+      \]
+      where \(L\) is the post-clearance distance.
+
+  \end{itemize}
+\end{frame}
+
+% ====================== OBSTACLE DETECTION: FIRST APPROACH (RESULT) ======================
+\begin{frame}[t]{Obstacle Detection — First Approach - Evasion Demonstration}
+  \vspace*{-0.3em}
+  \textbf{Evasion Demonstration}
+  
+  \centering
+  % Placeholder for video
+  \rule{0pt}{6cm}\rule{0.85\linewidth}{0pt} % Reserve space for video
+  
+  % Or include with media9 / multimedia package:
+  % \includemedia[
+  %   width=0.85\linewidth,
+  %   height=6cm,
+  %   activate=onclick,
+  %   addresource=video.mp4,
+  %   flashvars={source=video.mp4}
+  % ]{\includegraphics{frame.png}}{VPlayer.swf}
+\end{frame}
+
+
+% ====================== OBSTACLE DETECTION: SECOND APPROACH ======================
+\begin{frame}[t]{Obstacle Detection — Second Approach}
+  \vspace*{-0.3em}
+  \textbf{Concept}
+  \begin{itemize}\setlength{\itemsep}{0.35em}
+    \item Continue normal line‑following until the object is detected.
+    \item Shift the lane’s “green dotted line” horizontally by a fixed pixel offset (e.g., \(+200\) px) \emph{away} from the object in the image.
+    \item The controller tracks the \emph{shifted} centerline, naturally steering around the obstacle without switching modes.
+  \end{itemize}
+
+  \vspace{0.6em}
+  \textbf{Pixel→Metre Consistency}
+  \begin{itemize}\setlength{\itemsep}{0.3em}
+    \item The vision system computes the lateral deviation and yaw angle the same.
+  \end{itemize}
+\end{frame}
+
+% ====================== OBSTACLE DETECTION: FIRST APPROACH (RESULT) ======================
+\begin{frame}[t]{Obstacle Detection — Second Approach - Evasion Demonstration}
+  \vspace*{-0.3em}
+  \textbf{Evasion Demonstration}
+  
+  \centering
+  % Placeholder for video
+  \rule{0pt}{6cm}\rule{0.85\linewidth}{0pt} % Reserve space for video
+  
+  % Or include with media9 / multimedia package:
+  % \includemedia[
+  %   width=0.85\linewidth,
+  %   height=6cm,
+  %   activate=onclick,
+  %   addresource=video.mp4,
+  %   flashvars={source=video.mp4}
+  % ]{\includegraphics{frame.png}}{VPlayer.swf}
+\end{frame}
+
+
+
+% ====================== TRADE-OFFS & NOTES ======================
+\begin{frame}[t]{Limitations}
+  \vspace*{-0.3em}
+  \textbf{Limitations}
+  \begin{itemize}\setlength{\itemsep}{0.3em}
+    \item \textit{Processing:} The obstacle detection and path planning methods are not optimized and require significant processing power. Combined with running MPC and ROS locally on a Jetson Nano, this creates a bottleneck, resulting in slow performance.
+  \end{itemize}
+
+  \textbf{Potential Solutions}
+  \begin{itemize}
+      \item \textit{GPU Optimization:} Utilize the Jetson’s onboard GPU for image processing.
+      \item \textit{Off-loading:} Transfer processing to an external PC or server, with consideration for video feed transmission speed.
+      \item \textit{Code Optimization:} Restructure algorithms for efficiency, e.g., periodic obstacle checks or targeted pixel searches instead of scanning the entire frame.
+  \end{itemize}
+\end{frame}
+
+
+
+% ====================== THANK YOU / CONTACT ======================
+\begin{frame}{Thanks!}
+  \vfill % vertically center content
+  \begin{columns}[c] % [c] vertically centers within the columns environment
+    \begin{column}{0.5\textwidth}
+      \centering
+      {\Large \textbf{Jamie Smith}} \\[0.8em]
+
+      \textbf{GitHub} \\
+      \footnotesize \url{\ghURL} \\[1.0em]
+
+      \textbf{LinkedIn} \\
+      \footnotesize \url{\liURL}
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+      \centering
+      \textbf{GitHub QR} \\[0.4em]
+      \qrcode[height=3cm]{https://github.com/jsmith-exe} \\[1.5em]
+
+    \end{column}
+  \end{columns}
+  \vfill
+\end{frame}
+
+
+
+\end{document}

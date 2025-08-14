@@ -4,11 +4,11 @@
 **Date:** August 2025
 
 ## Overview
-This project implements **lane following** on the NVIDIA JetRacer platform using a **Model Predictive Controller (MPC)**. The work also integrates obstacle detection and evasion strategies using both monocular camera and camera–LiDAR fused approaches.
+This project implements **lane following** on the NVIDIA JetRacer platform using a **Model Predictive Controller (MPC)**. The work also integrates obstacle detection and evasion strategies using both monocular camera approaches.
 
 The repository contains:
-- LaTeX beamer presentation source (`.tex`).
-- PowerPoint (`.pptm`) version of the presentation with embedded demonstration videos.
+- [LaTeX beamer presentation source](documentation/presentation/jetracer_presentation.tex)
+- [PowerPoint version of the presentation with embedded demonstration videos](documentation/presentation/jetracer.pptm)
 - Supporting code and demonstration assets.
 
 ---
@@ -30,9 +30,10 @@ The repository contains:
 ## Lane Following
 
 ### Vision Processing
-1. Convert camera feed to binary (black & white) for lane detection.
-2. Use edge detection to find lane boundaries.
-3. Compute **lateral deviation** and **yaw angle** relative to lane center.
+- Convert camera feed to binary (black & white) for lane detection.
+- Use edge detection to find lane boundaries.
+- Compute **lateral deviation** and **yaw angle** relative to lane center.
+- [Compute lane measurement here](scripts/road_follower/lane_measurements.py)
 
 <p align="left">
   <img src="media/gifs/lane.gif" alt="Lane Demo" width="800">
@@ -42,6 +43,8 @@ The repository contains:
 - **P Controller:** Limited to low-speed operation, unstable at higher speeds.
 - **PID Controller:** Improved stability, 162% speed increase over P controller.
 - **MPC Controller:** Handles constraints, anticipates deviations, achieves up to 249% speed increase over P controller.
+- [Run PID lane follower here](scripts/road_follower/pid_lane_follower.py)
+- [Run MPC lane follower here](scripts/road_follower/nmpc_lane_follower.py)
 
 <p align="left">
   <img src="media/gifs/mpc_control_736.gif" alt="MPC Demo" width="800">
@@ -55,6 +58,7 @@ The repository contains:
 - HSV color thresholding to segment obstacle.
 - Distance estimation from pixel width scaling.
 - Generate evasive and return waypoints around the obstacle.
+- [Measure distance from object here](scripts/object_detection/evasion_point.py)
 
 <p align="left">
   <img src="media/gifs/object_distance.gif" alt="Distance Demo" width="800">
@@ -63,6 +67,7 @@ The repository contains:
 ### Second Approach
 - Shift detected lane centerline in vision pipeline by fixed pixel offset when obstacle is detected.
 - MPC tracks shifted line to naturally steer around obstacle.
+- [Run evasion path here](scripts/object_detection/evasion_path.py)
 
 <p align="left">
   <img src="media/gifs/alt_path.gif" alt="Alt Path Demo" width="800">
@@ -84,7 +89,7 @@ The repository contains:
 
 ## Demonstrations
 
-The PowerPoint version (`.pptm`) contains embedded videos showing:
+The PowerPoint version [Jetracer.pptm](documentation/presentation/jetracer.pptm) contains embedded videos showing:
 - P vs PID controller performance.
 - MPC speed and stability improvements.
 - Obstacle detection distance measurement.
